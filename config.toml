@@ -1,0 +1,71 @@
+# OMOP ATLAS Agent Configuration File
+# Settings defined here will be used as defaults
+# Environment variables and .env file will override these values
+
+[models]
+default_provider = "ollama"
+
+[models.providers.anthropic]
+provider = "anthropic"
+model_id = "claude-3-5-sonnet-20241022"
+
+[models.providers.openai]
+provider = "openai"
+model_id = "gpt-4-turbo-preview"
+
+[models.providers.azure]
+provider = "azure"
+model_id = "gpt-4.1"
+api_version = "2025-01-01-preview"
+temperature = 0.0
+
+[models.providers.ollama]
+provider = "ollama"
+model_id = "gpt-oss:120b"
+
+[agents.orchestrator]
+name = "ATLAS Concept Set Orchestrator"
+model_provider = "ollama"
+description = "Orchestrates the creation of ATLAS concept sets from clinical descriptions"
+
+[agents.concept_finder]
+name = "Concept Finder"
+model_provider = "ollama"
+description = "Finds relevant OMOP concepts using semantic search"
+
+[agents.clinical_parser]
+name = "Clinical Parser"
+model_provider = "ollama"
+description = "Parses clinical descriptions into structured entities"
+
+[agents.relationship_reasoner]
+name = "Relationship Reasoner"
+model_provider = "ollama"
+description = "Uses OMOP relationships to validate and enrich concepts"
+
+[agents.set_builder]
+name = "Concept Set Builder"
+model_provider = "ollama"
+description = "Builds concept sets with proper inclusion/exclusion logic"
+
+[agents.validator]
+name = "Concept Set Validator"
+model_provider = "ollama"
+description = "Validates concept sets for clinical correctness"
+
+[agents.corrector]
+name = "Concept Set Corrector"
+model_provider = "ollama"
+description = "Corrects validation errors in concept sets"
+
+[milvus]
+host = "localhost"
+port = 19530
+collection_name = "omop_clinical_concepts"
+
+[embedding]
+model = "abhinand/MedEmbed-large-v0.1"
+
+[output]
+# Default output directory for generated concept sets
+export_directory = "./output"

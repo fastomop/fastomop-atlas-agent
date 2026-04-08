@@ -1,0 +1,22 @@
+[project]
+name = "atlas-agent"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "agno>=2.0.0",
+    "pymilvus>=2.4.0",
+    "pydantic>=2.0.0",
+    "sentence-transformers>=2.5.0",
+    "torch==2.7.0",
+    "ollama",
+    "tomli>=2.0.0",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

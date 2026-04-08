@@ -1,0 +1,84 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# Environment and local config
+.env
+.env.local
+.env.*.local
+config.local.toml
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Linting / type checking
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+
+# OS
+.DS_Store
+Thumbs.db
+._*
+
+# Output / generated data
+output/
+*.json
+
+# Logs
+*.log
+
+# Database files
+*.db
+*.sqlite3
+
+# ML model artifacts (torch, sentence-transformers)
+*.pth
+*.pt
+*.bin
+*.onnx
+model_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Accidental files
+--output
