@@ -6,6 +6,20 @@ from agno.models.ollama import Ollama
 from typing import Dict, Any
 import os
 
+# External factory injection support
+_custom_factory = None
+
+
+def set_factory(fn):
+    """Inject a custom model factory function.
+
+    When set, create_model() delegates to this function instead of the
+    built-in logic. Useful when embedding atlas-agent in a host application
+    that supports additional model providers.
+    """
+    global _custom_factory
+    _custom_factory = fn
+
 
 def create_model(config: Dict[str, Any]) -> Any:
     """
@@ -24,6 +38,10 @@ def create_model(config: Dict[str, Any]) -> Any:
     Raises:
         ValueError: If unknown model type is specified
     """
+    # Use custom factory if injected
+    if _custom_factory:
+        return _custom_factory(config)
+
     model_type = config.get("MODEL_TYPE", "ollama")
     model_id = config.get("MODEL_ID", "gpt-oss:20b")
 

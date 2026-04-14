@@ -13,6 +13,9 @@ CONFIG_DIR = Path(__file__).parent.parent.parent
 CONFIG_PATH = CONFIG_DIR / "config.toml"
 LOCAL_CONFIG_PATH = CONFIG_DIR / "config.local.toml"
 
+# External config injection support
+_agent_prefix = ""
+
 
 def deep_merge(base: dict, override: dict) -> dict:
     """Deep merge override dict into base dict."""
@@ -46,6 +49,43 @@ def load_config() -> dict:
 config = load_config()
 
 
+def init(config_dict: dict, agent_prefix: str = "atlas_"):
+    """Configure atlas_agent from an external config dict.
+
+    Call this BEFORE creating any agent instances. When not called,
+    the module uses file-based config loading (standalone mode).
+
+    Args:
+        config_dict: Unified config dict (replaces file-based loading)
+        agent_prefix: Prefix for agent config keys to avoid collisions.
+                      e.g. "atlas_" means get_agent_config("orchestrator")
+                      looks up config["agents"]["atlas_orchestrator"]
+    """
+    global config, _agent_prefix
+    global MILVUS_HOST, MILVUS_PORT, COLLECTION_NAME, EMBEDDING_MODEL
+    global OLLAMA_BASE_URL, OLLAMA_MODEL, OUTPUT_DIRECTORY
+
+    config = config_dict
+    _agent_prefix = agent_prefix
+
+    # Recompute legacy globals from the injected config
+    milvus_cfg = config_dict.get("milvus", {})
+    MILVUS_HOST = os.getenv("MILVUS_HOST", milvus_cfg.get("host", milvus_cfg.get("host", "localhost")))
+    MILVUS_PORT = int(os.getenv("MILVUS_PORT", milvus_cfg.get("port", "19530")))
+    COLLECTION_NAME = os.getenv(
+        "COLLECTION_NAME",
+        milvus_cfg.get("collection", milvus_cfg.get("collection_name", "omop_clinical_concepts"))
+    )
+    EMBEDDING_MODEL = os.getenv(
+        "EMBEDDING_MODEL",
+        milvus_cfg.get("embedding_model", config_dict.get("embedding", {}).get("model", "abhinand/MedEmbed-large-v0.1"))
+    )
+    OLLAMA_BASE_URL = os.getenv("OLLAMA_HOST", os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"))
+    default_prov = config_dict.get("models", {}).get("providers", {}).get("ollama", {})
+    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", default_prov.get("model_id", "gpt-oss:20b"))
+    OUTPUT_DIRECTORY = Path(os.getenv("OUTPUT_DIRECTORY", config_dict.get("output", {}).get("export_directory", "./output")))
+
+
 def get_agent_config(agent_name: str) -> Dict[str, Any]:
     """
     Get agent configuration with model provider settings.
@@ -56,6 +96,12 @@ def get_agent_config(agent_name: str) -> Dict[str, Any]:
     Returns:
         Dictionary with complete agent configuration including model settings
     """
+    # Apply prefix for external config (e.g. "orchestrator" -> "atlas_orchestrator")
+    if _agent_prefix:
+        prefixed = f"{_agent_prefix}{agent_name}"
+        if prefixed in config.get("agents", {}):
+            agent_name = prefixed
+
     agents_config = config.get("agents", {})
     if agent_name not in agents_config:
         # Fallback to default provider if agent not configured
@@ -84,6 +130,12 @@ def get_agent_config(agent_name: str) -> Dict[str, Any]:
     if provider == "azure":
         complete_config["api_version"] = provider_config.get("api_version", "2025-01-01-preview")
         complete_config["temperature"] = provider_config.get("temperature", 0.0)
+
+    # Pass through provider-specific options (host, num_ctx, etc.)
+    if provider_config.get("host"):
+        complete_config["host"] = provider_config["host"]
+    if "num_ctx" in provider_config:
+        complete_config["num_ctx"] = provider_config["num_ctx"]
 
     return complete_config
 
