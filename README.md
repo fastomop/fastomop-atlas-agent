@@ -28,7 +28,7 @@ The agent uses Python's standard `logging` module. Set the verbosity via the
 default `INFO`):
 
 ```bash
-LOG_LEVEL=DEBUG uv run python -m atlas_agent.main "Patients with diabetes"
+LOG_LEVEL=DEBUG uv run atlas_agent query "Patients with diabetes"
 ```
 
 CLI usage banners and the final concept-set summary still go to stdout via
@@ -97,16 +97,16 @@ Process your own clinical phenotype definitions from `.md` files:
 
 ```bash
 # Single vignette
-uv run python run_vignettes.py my_phenotype.md
+uv run atlas_agent vignettes my_phenotype.md
 
 # Multiple files
-uv run python run_vignettes.py case1.md case2.md case3.md
+uv run atlas_agent vignettes case1.md case2.md case3.md
 
 # All .md files in a directory (recursive)
-uv run python run_vignettes.py vignettes/
+uv run atlas_agent vignettes vignettes/
 
 # Custom output directory
-uv run python run_vignettes.py vignettes/ -o results/
+uv run atlas_agent vignettes vignettes/ -o results/
 ```
 
 Results are written to `output/vignettes/<name>/` with:
@@ -121,16 +121,23 @@ Run the [OHDSI Mind Meets Machines](https://github.com/ohdsi-studies/MindMeetsMa
 
 ```bash
 # Single challenge
-uv run python run_single_challenge.py C01
+uv run atlas_agent challenge C01
 
 # Full challenge suite
-uv run python run_all_challenges.py
+uv run atlas_agent challenges
 ```
 
 ### Inline Query
 
 ```bash
-uv run python -m atlas_agent.main "Patients with type 2 diabetes who received bariatric surgery"
+uv run atlas_agent query "Patients with type 2 diabetes who received bariatric surgery"
+```
+
+Each subcommand also accepts a CLI-level `--log-level` flag that takes
+precedence over the `LOG_LEVEL` env var:
+
+```bash
+uv run atlas_agent query --log-level DEBUG "..."
 ```
 
 ## Development
