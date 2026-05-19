@@ -1,5 +1,6 @@
 """Orchestrator Agent - Coordinates the ATLAS concept set creation workflow."""
 
+import logging
 from typing import Optional
 
 from ..models import ConceptSet
@@ -10,6 +11,8 @@ from .corrector import CorrectorAgent
 from .relationship_reasoner import RelationshipReasonerAgent
 from .set_builder import SetBuilderAgent
 from .validator import ValidatorAgent
+
+logger = logging.getLogger(__name__)
 
 
 class OrchestratorAgent:
@@ -51,28 +54,26 @@ class OrchestratorAgent:
         Returns:
             Tuple of (ConceptSet, ATLAS JSON dict)
         """
-        print(f"\n{'=' * 80}")
-        print("🏥 ATLAS Concept Set Creation Pipeline")
-        print(f"{'=' * 80}\n")
+        logger.info("ATLAS Concept Set Creation Pipeline starting")
 
         # Step 1: Parse clinical description
-        print("📋 Step 1: Parsing clinical description...")
-        print(f"Input: {clinical_description[:100]}...")
+        logger.info("Step 1: Parsing clinical description")
+        logger.debug("Input preview: %s...", clinical_description[:100])
 
         parsed = self.parser.parse(clinical_description)
 
-        print(f"\n✓ Extracted {len(parsed.entities)} entities:")
+        logger.info("Extracted %d entities", len(parsed.entities))
         for entity in parsed.entities:
-            print(f"  • {entity.text} ({entity.entity_type}, domain={entity.domain})")
+            logger.debug("  entity: %s (%s, domain=%s)", entity.text, entity.entity_type, entity.domain)
 
-        print(f"\nStrategy: {parsed.concept_set_strategy}")
+        logger.info("Strategy: %s", parsed.concept_set_strategy)
 
         # Step 2: Find OMOP concepts for each entity
-        print("\n🔍 Step 2: Finding OMOP concepts...")
+        logger.info("Step 2: Finding OMOP concepts")
 
         concept_matches = []
         for entity in parsed.entities:
-            print(f"\n  Searching for: '{entity.text}' (domain={entity.domain})")
+            logger.info("Searching for: '%s' (domain=%s)", entity.text, entity.domain)
 
             matches = self.finder.find_concepts(
                 entity=entity,
@@ -81,16 +82,20 @@ class OrchestratorAgent:
             )
 
             if matches:
-                print(f"  ✓ Found {len(matches)} candidate(es):")
+                logger.info("Found %d candidate(s)", len(matches))
                 for match in matches:
                     rel_count = len(match.relationship_types)
                     rel_suffix = f" [{rel_count} relationships]" if rel_count > 0 else ""
-                    print(
-                        f"    - [{match.concept_id}] {match.concept_name} (similarity: {match.similarity_score:.3f}){rel_suffix}"
+                    logger.debug(
+                        "  [%s] %s (similarity: %.3f)%s",
+                        match.concept_id,
+                        match.concept_name,
+                        match.similarity_score,
+                        rel_suffix,
                     )
 
                 # Step 3: Use relationship reasoning to enrich and validate
-                print("\n  🧠 Applying relationship reasoning...")
+                logger.info("Applying relationship reasoning")
                 enriched_matches = self.reasoner.reason_about_concepts(
                     entity=entity,
                     candidate_concepts=matches,
@@ -98,68 +103,69 @@ class OrchestratorAgent:
                 )
 
                 if enriched_matches:
-                    print(f"  ✓ Selected {len(enriched_matches)} concept(s) after relationship validation:")
+                    logger.info("Selected %d concept(s) after relationship validation", len(enriched_matches))
                     for match in enriched_matches:
-                        print(f"    → [{match.concept_id}] {match.concept_name}")
+                        logger.debug("  → [%s] %s", match.concept_id, match.concept_name)
                     concept_matches.append((entity, enriched_matches))
                 else:
-                    print("  ⚠ No concepts passed relationship validation, using top candidate")
+                    logger.warning("No concepts passed relationship validation, using top candidate")
                     concept_matches.append((entity, [matches[0]]))
             else:
-                print(f"  ⚠ No matches found for '{entity.text}'")
+                logger.warning("No matches found for '%s'", entity.text)
 
         # Step 4: Build concept set with ATLAS rules
-        print("\n🏗️  Step 4: Building concept set with ATLAS rules...")
+        logger.info("Step 4: Building concept set with ATLAS rules")
 
         concept_set = self.builder.build_concept_set(
             concept_matches=concept_matches,
             description=clinical_description,
         )
 
-        print(f"\n✓ Built concept set: '{concept_set.name}'")
-        print(f"  Items: {len(concept_set.items)}")
+        logger.info("Built concept set: '%s'", concept_set.name)
+        logger.info("  Items: %d", len(concept_set.items))
 
         # Count inclusions vs exclusions
         inclusions = sum(1 for item in concept_set.items if not item.is_excluded)
         exclusions = sum(1 for item in concept_set.items if item.is_excluded)
         with_descendants = sum(1 for item in concept_set.items if item.include_descendants)
 
-        print(f"  Inclusions: {inclusions}, Exclusions: {exclusions}")
-        print(f"  With descendants: {with_descendants}")
+        logger.info("  Inclusions: %d, Exclusions: %d", inclusions, exclusions)
+        logger.info("  With descendants: %d", with_descendants)
 
         # Step 5: Validate concept set
         if validate:
-            print("\n✅ Step 5: Validating concept set...")
+            logger.info("Step 5: Validating concept set")
 
             # First validation attempt
             concept_set = self.validator.validate(concept_set, parsed_description=parsed)
 
             # If validation has notes, attempt a single correction
             if concept_set.validation_notes:
-                print(
-                    f"  ⚠️ Validation produced {len(concept_set.validation_notes)} notes. Attempting a single correction..."
+                logger.warning(
+                    "Validation produced %d notes; attempting a single correction",
+                    len(concept_set.validation_notes),
                 )
 
                 # Attempt to correct the concept set
                 corrected_set = self.corrector.correct_concept_set(concept_set, parsed)
 
                 # Re-validate the corrected set
-                print("\n✅ Re-validating the corrected concept set...")
+                logger.info("Re-validating the corrected concept set")
                 concept_set = self.validator.validate(corrected_set, parsed_description=parsed)
 
-            print("\n✓ Validation complete:")
+            logger.info("Validation complete")
             if concept_set.validation_notes:
-                for note in concept_set.validation_notes[:5]:  # Show first 5
-                    print(f"  • {note}")
+                for note in concept_set.validation_notes[:5]:
+                    logger.info("  • %s", note)
                 if len(concept_set.validation_notes) > 5:
-                    print(f"  ... and {len(concept_set.validation_notes) - 5} more notes")
+                    logger.info("  ... and %d more notes", len(concept_set.validation_notes) - 5)
             else:
-                print("  • No validation issues found")
+                logger.info("  No validation issues found")
 
-            print(f"\nCoverage: {concept_set.coverage_summary}")
+            logger.info("Coverage: %s", concept_set.coverage_summary)
 
         # Step 6: Export to ATLAS JSON
-        print("\n📤 Step 6: Exporting to ATLAS JSON...")
+        logger.info("Step 6: Exporting to ATLAS JSON")
 
         atlas_json = export_to_atlas_json(concept_set)
 
@@ -168,14 +174,11 @@ class OrchestratorAgent:
 
             with open(export_path, "w") as f:
                 json.dump(atlas_json, f, indent=2)
-            print(f"✓ Exported to: {export_path}")
+            logger.info("Exported to: %s", export_path)
         else:
-            print(f"✓ ATLAS JSON ready ({len(atlas_json['items'])} items)")
+            logger.info("ATLAS JSON ready (%d items)", len(atlas_json["items"]))
 
-        # Summary
-        print(f"\n{'=' * 80}")
-        print("✨ Concept Set Creation Complete!")
-        print(f"{'=' * 80}\n")
+        logger.info("Concept Set Creation Complete")
 
         return concept_set, atlas_json
 

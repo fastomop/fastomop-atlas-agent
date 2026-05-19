@@ -1,10 +1,13 @@
 """Direct WebAPI vocabulary search (no MCP, no Milvus)."""
 
+import logging
 from typing import List, Optional
 
 import httpx
 
 from ..models import ConceptMatch
+
+logger = logging.getLogger(__name__)
 
 
 class WebAPISearchTool:
@@ -161,11 +164,11 @@ class WebAPISearchTool:
 
             return matches
 
-        except httpx.HTTPError as e:
-            print(f"WebAPI search failed: {e}")
+        except httpx.HTTPError:
+            logger.warning("WebAPI search failed", exc_info=True)
             return []
-        except Exception as e:
-            print(f"Unexpected error: {e}")
+        except Exception:
+            logger.exception("Unexpected WebAPI search error")
             return []
 
     def get_concept_by_id(self, concept_id: int) -> Optional[ConceptMatch]:
@@ -215,8 +218,8 @@ class WebAPISearchTool:
                 matched_entity=f"concept_id:{concept_id}",
             )
 
-        except Exception as e:
-            print(f"⚠️  Failed to get concept {concept_id}: {e}")
+        except Exception:
+            logger.warning("Failed to get concept %s", concept_id, exc_info=True)
             return None
 
     def search_by_code(self, code: str, vocabulary_id: str) -> Optional[ConceptMatch]:
