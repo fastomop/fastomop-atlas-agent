@@ -25,6 +25,7 @@ atlas_agent = "atlas_agent.cli:app"
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
+    "pytest-asyncio>=0.21.0",
     "ruff>=0.15",
     "ty>=0.0.1a1",
 ]
