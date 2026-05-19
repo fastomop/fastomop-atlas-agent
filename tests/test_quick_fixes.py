@@ -1,7 +1,7 @@
 """Quick test to verify the fixes work without full pipeline."""
-from src.atlas_agent.agents.clinical_parser import ClinicalParserAgent
-from src.atlas_agent.agents.set_builder import SetBuilderAgent
-from src.atlas_agent.models import ClinicalEntity, ConceptMatch
+from atlas_agent.agents.clinical_parser import ClinicalParserAgent
+from atlas_agent.agents.set_builder import SetBuilderAgent
+from atlas_agent.models import ClinicalEntity, ConceptMatch
 
 print("=" * 80)
 print("TESTING: Quick fixes verification")

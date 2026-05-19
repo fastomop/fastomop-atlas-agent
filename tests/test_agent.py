@@ -1,5 +1,5 @@
 """Quick test of ATLAS agent with simple examples."""
-from src.atlas_agent.agents import OrchestratorAgent
+from atlas_agent.agents import OrchestratorAgent
 import json
 
 # Initialize orchestrator
