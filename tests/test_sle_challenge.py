@@ -1,6 +1,8 @@
 """Test ATLAS agent with SLE challenge case from Mind Meets Machines."""
-from atlas_agent.agents import OrchestratorAgent
+
 import json
+
+from atlas_agent.agents import OrchestratorAgent
 
 # Initialize orchestrator
 print("🚀 Initializing ATLAS agent for SLE challenge...")
@@ -58,15 +60,15 @@ Hydroxychloroquine, azathioprine, mycophenolate, methotrexate, cyclophosphamide;
 * SLE with organ involvement (e.g., "SLE with nephritis")
 """
 
-print(f"\n{'='*80}")
+print(f"\n{'=' * 80}")
 print("TESTING: Systemic Lupus Erythematosus Concept Set")
-print(f"{'='*80}\n")
+print(f"{'=' * 80}\n")
 print("Challenge: Create concept set for clinically active systemic SLE")
 print("- Must capture systemic form with organ involvement")
 print("- Must exclude cutaneous-only lupus")
 print("- Must exclude drug-induced and other non-systemic forms")
 print("- Must exclude related autoimmune conditions")
-print(f"\n{'='*80}\n")
+print(f"\n{'=' * 80}\n")
 
 try:
     # Create concept set
@@ -79,15 +81,15 @@ try:
     )
 
     # Print detailed explanation
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("CONCEPT SET EXPLANATION")
-    print("="*80 + "\n")
+    print("=" * 80 + "\n")
     print(orchestrator.explain_concept_set(concept_set))
 
     # Summary statistics
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("SUMMARY STATISTICS")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     print(f"Total concepts included: {len(concept_set.items)}")
 
     # Group by domain
@@ -101,12 +103,12 @@ try:
         print(f"  {domain}: {count}")
 
     # Show some example concepts
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("EXAMPLE INCLUDED CONCEPTS (first 10)")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     for i, item in enumerate(concept_set.items[:10], 1):
         include_desc = "+" if not item.is_excluded else "-"
-        descendants = f" [+descendants]" if item.include_descendants else ""
+        descendants = " [+descendants]" if item.include_descendants else ""
         print(f"{i:2d}. {include_desc} [{item.concept.concept_id}] {item.concept.concept_name}{descendants}")
         print(f"     Domain: {item.concept.domain_id}, Vocab: {item.concept.vocabulary_id}")
 
@@ -116,9 +118,9 @@ try:
     # Check for exclusions
     exclusions = [item for item in concept_set.items if item.is_excluded]
     if exclusions:
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"EXCLUDED CONCEPTS ({len(exclusions)} total)")
-        print(f"{'='*80}")
+        print(f"{'=' * 80}")
         for i, item in enumerate(exclusions[:5], 1):
             print(f"{i}. [-] [{item.concept.concept_id}] {item.concept.concept_name}")
             print(f"     Reason: {item.rationale}")
@@ -126,23 +128,24 @@ try:
             print(f"\n... and {len(exclusions) - 5} more exclusions")
 
     # Show ATLAS JSON structure
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("ATLAS JSON PREVIEW (first item)")
-    print(f"{'='*80}")
-    if atlas_json['items']:
-        print(json.dumps(atlas_json['items'][0], indent=2))
+    print(f"{'=' * 80}")
+    if atlas_json["items"]:
+        print(json.dumps(atlas_json["items"][0], indent=2))
 
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("✅ SLE CHALLENGE TEST COMPLETED SUCCESSFULLY!")
-    print(f"{'='*80}")
-    print(f"📁 Exported to: output/sle_concept_set.json")
+    print(f"{'=' * 80}")
+    print("📁 Exported to: output/sle_concept_set.json")
     print(f"📊 Total concepts: {len(concept_set.concepts)}")
-    print(f"🎯 Ready for ATLAS import and phenotype validation")
+    print("🎯 Ready for ATLAS import and phenotype validation")
 
 except Exception as e:
-    print(f"\n{'='*80}")
+    print(f"\n{'=' * 80}")
     print("❌ TEST FAILED")
-    print(f"{'='*80}")
+    print(f"{'=' * 80}")
     print(f"Error: {type(e).__name__}: {e}")
     import traceback
+
     traceback.print_exc()

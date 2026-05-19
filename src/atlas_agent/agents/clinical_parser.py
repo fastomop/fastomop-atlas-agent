@@ -1,4 +1,5 @@
 """Clinical Parser Agent - Extracts structured entities from clinical descriptions."""
+
 from agno.agent import Agent
 
 from ..config import get_agent_config
@@ -81,14 +82,19 @@ class ClinicalParserAgent:
 
         # OPTIMIZATION: Skip restructuring for Mind Meets Machines vignettes
         # These are already well-structured with clear sections
-        if any(marker in clinical_description for marker in [
-            "# [C0", "## [C0",  # Challenge ID markers with bracket
-            "# C0", "## C0",  # Challenge ID markers without bracket
-            "Clinical Scope and Granularity",  # Standard section
-            "Related, differential or comorbid conditions",  # Standard section
-            "Synonyms:",  # Synonym section
-        ]):
-            #print("   ⚡ Skipping restructuring (Mind Meets Machines vignette detected)")
+        if any(
+            marker in clinical_description
+            for marker in [
+                "# [C0",
+                "## [C0",  # Challenge ID markers with bracket
+                "# C0",
+                "## C0",  # Challenge ID markers without bracket
+                "Clinical Scope and Granularity",  # Standard section
+                "Related, differential or comorbid conditions",  # Standard section
+                "Synonyms:",  # Synonym section
+            ]
+        ):
+            # print("   ⚡ Skipping restructuring (Mind Meets Machines vignette detected)")
             return clinical_description
 
         # Restructure narrative vignette into explicit format
@@ -146,20 +152,24 @@ CONTEXT:
 """
 
         response = self.agent.run(restructure_prompt)
-        restructured = response.content if hasattr(response, 'content') else str(response)
+        restructured = response.content if hasattr(response, "content") else str(response)
 
         # If the agent returned a ParsedClinicalDescription object (because output_schema is set),
         # convert it to JSON string so it can be used as input for the next step
         if isinstance(restructured, ParsedClinicalDescription):
             import json
-            restructured = json.dumps({
-                "original_text": restructured.original_text,
-                "entities": [e.model_dump() for e in restructured.entities],
-                "interpretation": restructured.interpretation,
-                "concept_set_strategy": restructured.concept_set_strategy
-            }, indent=2)
 
-        print(f"\n📋 Restructured vignette:")
+            restructured = json.dumps(
+                {
+                    "original_text": restructured.original_text,
+                    "entities": [e.model_dump() for e in restructured.entities],
+                    "interpretation": restructured.interpretation,
+                    "concept_set_strategy": restructured.concept_set_strategy,
+                },
+                indent=2,
+            )
+
+        print("\n📋 Restructured vignette:")
         print("=" * 80)
         print(restructured[:1000] if len(str(restructured)) > 1000 else restructured)
         print("=" * 80 + "\n")
@@ -253,6 +263,7 @@ Skip:
 """
         print("   ⏳ Calling LLM for entity extraction (this may take 1-2 minutes)...")
         import time
+
         start = time.time()
         response = self.agent.run(prompt)
         elapsed = time.time() - start
@@ -263,7 +274,7 @@ Skip:
         import re
 
         # Try to get the actual response content
-        if hasattr(response, 'content'):
+        if hasattr(response, "content"):
             content = response.content
         else:
             content = str(response)
@@ -278,7 +289,7 @@ Skip:
                 parsed_json = json.loads(content)
             except json.JSONDecodeError:
                 # Try to extract JSON from markdown code blocks
-                json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', content, re.DOTALL)
+                json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
                 if json_match:
                     parsed_json = json.loads(json_match.group(1))
                 else:
@@ -288,24 +299,24 @@ Skip:
                         parsed_json = json.loads(json_match.group(0))
                     else:
                         # If all parsing fails, create empty result with required fields
-                        print(f"⚠️  Failed to parse LLM response, using empty entity list")
+                        print("⚠️  Failed to parse LLM response, using empty entity list")
                         print(f"Response preview: {content[:500]}")
                         parsed_json = {
                             "original_text": structured_description,
                             "entities": [],
                             "interpretation": "Failed to parse LLM response",
-                            "concept_set_strategy": "No strategy available due to parsing failure"
+                            "concept_set_strategy": "No strategy available due to parsing failure",
                         }
 
             # Fix entity field name variations
-            if 'entities' in parsed_json and len(parsed_json['entities']) > 0:
-                for entity in parsed_json['entities']:
-                    if 'name' in entity and 'text' not in entity:
-                        entity['text'] = entity.pop('name')
-                    elif 'entity_name' in entity and 'text' not in entity:
-                        entity['text'] = entity.pop('entity_name')
-                    elif 'entity_text' in entity and 'text' not in entity:
-                        entity['text'] = entity.pop('entity_text')
+            if "entities" in parsed_json and len(parsed_json["entities"]) > 0:
+                for entity in parsed_json["entities"]:
+                    if "name" in entity and "text" not in entity:
+                        entity["text"] = entity.pop("name")
+                    elif "entity_name" in entity and "text" not in entity:
+                        entity["text"] = entity.pop("entity_name")
+                    elif "entity_text" in entity and "text" not in entity:
+                        entity["text"] = entity.pop("entity_text")
 
             parsed = ParsedClinicalDescription(**parsed_json)
         else:

@@ -1,5 +1,7 @@
 """Set Builder Agent - Applies ATLAS concept set rules."""
+
 from typing import List
+
 from ..models import ClinicalEntity, ConceptMatch, ConceptSet, ConceptSetItem
 
 
@@ -28,7 +30,7 @@ class SetBuilderAgent:
             "include_mapped": False,
         },
         "Measurement": {
-            "include_descendants": False, # Measurements are usually specific
+            "include_descendants": False,  # Measurements are usually specific
             "include_mapped": False,
         },
         "Observation": {
@@ -36,45 +38,39 @@ class SetBuilderAgent:
             "include_mapped": False,
         },
         "Specimen": {
-            "include_descendants": False, # Specimen types are specific
+            "include_descendants": False,  # Specimen types are specific
             "include_mapped": False,
         },
         "Visit": {
-            "include_descendants": False, # Visit types are specific
+            "include_descendants": False,  # Visit types are specific
             "include_mapped": False,
         },
         "Gender": {
-            "include_descendants": False, # Gender is specific
+            "include_descendants": False,  # Gender is specific
             "include_mapped": False,
         },
         "Race": {
-            "include_descendants": False, # Race is specific
+            "include_descendants": False,  # Race is specific
             "include_mapped": False,
         },
         "Ethnicity": {
-            "include_descendants": False, # Ethnicity is specific
+            "include_descendants": False,  # Ethnicity is specific
             "include_mapped": False,
         },
     }
 
     # Concept class/domain validation rules
     DIAGNOSIS_SET_RULES = {
-        "allowed_concept_classes": {
-            "Disorder", "Clinical Finding", "Disease", "Condition"
-        },
-        "allowed_domains": {
-            "Condition"
-        },
-        "forbidden_concept_classes": {
-            "Procedure", "Substance", "Answer", "Context-dependent"
-        }
+        "allowed_concept_classes": {"Disorder", "Clinical Finding", "Disease", "Condition"},
+        "allowed_domains": {"Condition"},
+        "forbidden_concept_classes": {"Procedure", "Substance", "Answer", "Context-dependent"},
     }
 
     def build_concept_set(
         self,
         concept_matches: List[tuple[ClinicalEntity, List[ConceptMatch]]],
         description: str,
-        set_type: str = "diagnosis"  # "diagnosis", "measurement", "drug", etc.
+        set_type: str = "diagnosis",  # "diagnosis", "measurement", "drug", etc.
     ) -> ConceptSet:
         """
         Build an ATLAS concept set from matched concepts.
@@ -101,8 +97,7 @@ class SetBuilderAgent:
                         continue
                 # Apply ATLAS rules based on domain
                 domain_rules = self.ATLAS_RULES.get(
-                    match.domain_id,
-                    {"include_descendants": False, "include_mapped": False}
+                    match.domain_id, {"include_descendants": False, "include_mapped": False}
                 )
 
                 # Override with entity-specific requirements if specified
@@ -136,11 +131,7 @@ class SetBuilderAgent:
             coverage_summary="",
         )
 
-    def _validate_diagnosis_concept(
-        self,
-        entity: ClinicalEntity,
-        match: ConceptMatch
-    ) -> str:
+    def _validate_diagnosis_concept(self, entity: ClinicalEntity, match: ConceptMatch) -> str:
         """
         Validate if concept is appropriate for a diagnosis concept set.
 
@@ -166,8 +157,11 @@ class SetBuilderAgent:
                     return f"Concept class '{match.concept_class_id}' is not a diagnosis"
 
                 # Allow Clinical Finding for now, but warn if it's actually a measurement result
-                if match.domain_id in {"Measurement", "Observation"} and entity.entity_type not in {"demographic", "observation"}:
-                    return f"Measurement/lab concept in diagnosis set - should be in separate measurement phenotype"
+                if match.domain_id in {"Measurement", "Observation"} and entity.entity_type not in {
+                    "demographic",
+                    "observation",
+                }:
+                    return "Measurement/lab concept in diagnosis set - should be in separate measurement phenotype"
 
         # Special validation for demographic concepts
         if entity.entity_type == "demographic":
@@ -179,12 +173,7 @@ class SetBuilderAgent:
 
         return ""  # Valid
 
-    def _build_rationale(
-        self,
-        entity: ClinicalEntity,
-        match: ConceptMatch,
-        include_descendants: bool
-    ) -> str:
+    def _build_rationale(self, entity: ClinicalEntity, match: ConceptMatch, include_descendants: bool) -> str:
         """Build human-readable rationale for including this concept."""
         parts = [
             f"Matched entity '{entity.text}' to OMOP concept '{match.concept_name}'",
@@ -202,5 +191,5 @@ class SetBuilderAgent:
     def _generate_name(self, description: str) -> str:
         """Generate a concise name from the description."""
         # Take first 50 chars or until first period/newline
-        name = description.split('\n')[0].split('.')[0][:50].strip()
+        name = description.split("\n")[0].split(".")[0][:50].strip()
         return name if name else "OMOP Concept Set"

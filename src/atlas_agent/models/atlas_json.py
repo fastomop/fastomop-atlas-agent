@@ -1,6 +1,7 @@
 """ATLAS JSON export format models."""
+
 from pydantic import BaseModel
-from typing import Optional
+
 
 class AtlasConcept(BaseModel):
     """ATLAS concept format (exact match to ATLAS export)."""
@@ -18,6 +19,7 @@ class AtlasConcept(BaseModel):
     INVALID_REASON_CAPTION: str
     STANDARD_CONCEPT_CAPTION: str
 
+
 class AtlasConceptSetItem(BaseModel):
     """ATLAS concept set item (exact match to ATLAS export)."""
 
@@ -25,6 +27,7 @@ class AtlasConceptSetItem(BaseModel):
     isExcluded: bool
     includeDescendants: bool
     includeMapped: bool
+
 
 class AtlasConceptSet(BaseModel):
     """ATLAS concept set export format."""

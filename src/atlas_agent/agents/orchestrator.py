@@ -1,13 +1,15 @@
 """Orchestrator Agent - Coordinates the ATLAS concept set creation workflow."""
+
 from typing import Optional
+
+from ..models import ConceptSet
+from ..tools import export_to_atlas_json
 from .clinical_parser import ClinicalParserAgent
 from .concept_finder import ConceptFinderAgent
+from .corrector import CorrectorAgent
 from .relationship_reasoner import RelationshipReasonerAgent
 from .set_builder import SetBuilderAgent
 from .validator import ValidatorAgent
-from .corrector import CorrectorAgent
-from ..models import ConceptSet
-from ..tools import export_to_atlas_json
 
 
 class OrchestratorAgent:
@@ -49,9 +51,9 @@ class OrchestratorAgent:
         Returns:
             Tuple of (ConceptSet, ATLAS JSON dict)
         """
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("🏥 ATLAS Concept Set Creation Pipeline")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
         # Step 1: Parse clinical description
         print("📋 Step 1: Parsing clinical description...")
@@ -66,7 +68,7 @@ class OrchestratorAgent:
         print(f"\nStrategy: {parsed.concept_set_strategy}")
 
         # Step 2: Find OMOP concepts for each entity
-        print(f"\n🔍 Step 2: Finding OMOP concepts...")
+        print("\n🔍 Step 2: Finding OMOP concepts...")
 
         concept_matches = []
         for entity in parsed.entities:
@@ -83,10 +85,12 @@ class OrchestratorAgent:
                 for match in matches:
                     rel_count = len(match.relationship_types)
                     rel_suffix = f" [{rel_count} relationships]" if rel_count > 0 else ""
-                    print(f"    - [{match.concept_id}] {match.concept_name} (similarity: {match.similarity_score:.3f}){rel_suffix}")
+                    print(
+                        f"    - [{match.concept_id}] {match.concept_name} (similarity: {match.similarity_score:.3f}){rel_suffix}"
+                    )
 
                 # Step 3: Use relationship reasoning to enrich and validate
-                print(f"\n  🧠 Applying relationship reasoning...")
+                print("\n  🧠 Applying relationship reasoning...")
                 enriched_matches = self.reasoner.reason_about_concepts(
                     entity=entity,
                     candidate_concepts=matches,
@@ -99,13 +103,13 @@ class OrchestratorAgent:
                         print(f"    → [{match.concept_id}] {match.concept_name}")
                     concept_matches.append((entity, enriched_matches))
                 else:
-                    print(f"  ⚠ No concepts passed relationship validation, using top candidate")
+                    print("  ⚠ No concepts passed relationship validation, using top candidate")
                     concept_matches.append((entity, [matches[0]]))
             else:
                 print(f"  ⚠ No matches found for '{entity.text}'")
 
         # Step 4: Build concept set with ATLAS rules
-        print(f"\n🏗️  Step 4: Building concept set with ATLAS rules...")
+        print("\n🏗️  Step 4: Building concept set with ATLAS rules...")
 
         concept_set = self.builder.build_concept_set(
             concept_matches=concept_matches,
@@ -125,23 +129,25 @@ class OrchestratorAgent:
 
         # Step 5: Validate concept set
         if validate:
-            print(f"\n✅ Step 5: Validating concept set...")
+            print("\n✅ Step 5: Validating concept set...")
 
             # First validation attempt
             concept_set = self.validator.validate(concept_set, parsed_description=parsed)
 
             # If validation has notes, attempt a single correction
             if concept_set.validation_notes:
-                print(f"  ⚠️ Validation produced {len(concept_set.validation_notes)} notes. Attempting a single correction...")
+                print(
+                    f"  ⚠️ Validation produced {len(concept_set.validation_notes)} notes. Attempting a single correction..."
+                )
 
                 # Attempt to correct the concept set
                 corrected_set = self.corrector.correct_concept_set(concept_set, parsed)
 
                 # Re-validate the corrected set
-                print(f"\n✅ Re-validating the corrected concept set...")
+                print("\n✅ Re-validating the corrected concept set...")
                 concept_set = self.validator.validate(corrected_set, parsed_description=parsed)
 
-            print(f"\n✓ Validation complete:")
+            print("\n✓ Validation complete:")
             if concept_set.validation_notes:
                 for note in concept_set.validation_notes[:5]:  # Show first 5
                     print(f"  • {note}")
@@ -153,22 +159,23 @@ class OrchestratorAgent:
             print(f"\nCoverage: {concept_set.coverage_summary}")
 
         # Step 6: Export to ATLAS JSON
-        print(f"\n📤 Step 6: Exporting to ATLAS JSON...")
+        print("\n📤 Step 6: Exporting to ATLAS JSON...")
 
         atlas_json = export_to_atlas_json(concept_set)
 
         if export_path:
             import json
-            with open(export_path, 'w') as f:
+
+            with open(export_path, "w") as f:
                 json.dump(atlas_json, f, indent=2)
             print(f"✓ Exported to: {export_path}")
         else:
             print(f"✓ ATLAS JSON ready ({len(atlas_json['items'])} items)")
 
         # Summary
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("✨ Concept Set Creation Complete!")
-        print(f"{'='*80}\n")
+        print(f"{'=' * 80}\n")
 
         return concept_set, atlas_json
 

@@ -1,9 +1,11 @@
 """Configuration for ATLAS agent."""
+
 import os
 from pathlib import Path
-from dotenv import load_dotenv
+from typing import Any, Dict
+
 import tomli
-from typing import Dict, Any
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
@@ -92,7 +94,9 @@ def get_agent_config(agent_name: str) -> Dict[str, Any]:
 # Milvus
 MILVUS_HOST = os.getenv("MILVUS_HOST", config.get("milvus", {}).get("host", "localhost"))
 MILVUS_PORT = int(os.getenv("MILVUS_PORT", config.get("milvus", {}).get("port", "19530")))
-COLLECTION_NAME = os.getenv("COLLECTION_NAME", config.get("milvus", {}).get("collection_name", "omop_clinical_concepts"))
+COLLECTION_NAME = os.getenv(
+    "COLLECTION_NAME", config.get("milvus", {}).get("collection_name", "omop_clinical_concepts")
+)
 
 # Embedding
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", config.get("embedding", {}).get("model", "abhinand/MedEmbed-large-v0.1"))

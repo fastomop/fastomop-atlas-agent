@@ -1,4 +1,5 @@
 """Concept Finder Agent - Finds OMOP concepts for clinical entities."""
+
 from typing import List
 
 from ..models import ClinicalEntity, ConceptMatch
@@ -15,12 +16,7 @@ class ConceptFinderAgent:
         self.search_tool = MilvusSearchTool()
         print("✓ Using Milvus vector search with semantic embeddings (4.1M OMOP concepts)")
 
-    def find_concepts(
-        self,
-        entity: ClinicalEntity,
-        top_k: int = 10,
-        min_similarity: float = 0.6
-    ) -> List[ConceptMatch]:
+    def find_concepts(self, entity: ClinicalEntity, top_k: int = 10, min_similarity: float = 0.6) -> List[ConceptMatch]:
         """
         Find OMOP concepts matching a clinical entity using WebAPI with vocabulary filters.
 
