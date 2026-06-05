@@ -1,4 +1,5 @@
 """Quick test to verify the fixes work without full pipeline."""
+
 from atlas_agent.agents.clinical_parser import ClinicalParserAgent
 from atlas_agent.agents.set_builder import SetBuilderAgent
 from atlas_agent.models import ClinicalEntity, ConceptMatch
@@ -40,17 +41,18 @@ try:
 
     # Check if context items were extracted (they shouldn't be)
     entity_texts = [e.text.lower() for e in parsed.entities]
-    context_items = ['ana', 'anti-dsdn a', 'anti-sm', 'c3', 'c4', 'hydroxychloroquine', 'mycophenolate', 'adult']
+    context_items = ["ana", "anti-dsdn a", "anti-sm", "c3", "c4", "hydroxychloroquine", "mycophenolate", "adult"]
     found_context = [item for item in context_items if any(item in text for text in entity_texts)]
 
     if found_context:
         print(f"\n⚠️  WARNING: Context items were extracted: {found_context}")
     else:
-        print(f"\n✓ SUCCESS: No context items extracted")
+        print("\n✓ SUCCESS: No context items extracted")
 
 except Exception as e:
     print(f"❌ Parser test failed: {e}")
     import traceback
+
     traceback.print_exc()
 
 # Test 2: Set builder concept filtering
@@ -107,9 +109,7 @@ mock_concepts = [
 
 try:
     concept_set = builder.build_concept_set(
-        concept_matches=[(entity, mock_concepts)],
-        description="Test SLE concept set",
-        set_type="diagnosis"
+        concept_matches=[(entity, mock_concepts)], description="Test SLE concept set", set_type="diagnosis"
     )
 
     print(f"✓ Built concept set with {len(concept_set.items)} items:")
@@ -121,13 +121,14 @@ try:
     concept_ids = [item.concept.concept_id for item in concept_set.items]
 
     if 123456 in concept_ids or 1234567 in concept_ids:
-        print(f"\n⚠️  WARNING: Invalid concepts were not filtered")
+        print("\n⚠️  WARNING: Invalid concepts were not filtered")
     else:
-        print(f"\n✓ SUCCESS: Invalid concepts were filtered out")
+        print("\n✓ SUCCESS: Invalid concepts were filtered out")
 
 except Exception as e:
     print(f"❌ Set builder test failed: {e}")
     import traceback
+
     traceback.print_exc()
 
 print("\n" + "=" * 80)

@@ -1,12 +1,12 @@
 """Milvus search tool for semantic concept retrieval."""
-import os
+
 import json
-import numpy as np
 from typing import List, Optional
-from pymilvus import connections, Collection
+
+from pymilvus import Collection, connections
 from sentence_transformers import SentenceTransformer
 
-from ..config import MILVUS_HOST, MILVUS_PORT, COLLECTION_NAME, EMBEDDING_MODEL
+from ..config import COLLECTION_NAME, EMBEDDING_MODEL, MILVUS_HOST, MILVUS_PORT
 from ..models import ConceptMatch
 
 
@@ -76,10 +76,12 @@ class MilvusSearchTool:
 
         # Add relationship fields if requested
         if include_relationships:
-            output_fields.extend([
-                "parent_concept_id",
-                "relationship_types",
-            ])
+            output_fields.extend(
+                [
+                    "parent_concept_id",
+                    "relationship_types",
+                ]
+            )
 
         # Execute search
         # Fetch more results than needed since we'll filter by domain post-search
@@ -204,10 +206,12 @@ class MilvusSearchTool:
         ]
 
         if include_relationships:
-            output_fields.extend([
-                "parent_concept_id",
-                "relationship_types",
-            ])
+            output_fields.extend(
+                [
+                    "parent_concept_id",
+                    "relationship_types",
+                ]
+            )
 
         # Query by concept_id
         expr = f"concept_id == {concept_id}"
@@ -378,10 +382,12 @@ class MilvusSearchTool:
         ]
 
         if include_relationships:
-            output_fields.extend([
-                "parent_concept_id",
-                "relationship_types",
-            ])
+            output_fields.extend(
+                [
+                    "parent_concept_id",
+                    "relationship_types",
+                ]
+            )
 
         # Try exact match first (case-sensitive)
         expr_parts = [f'concept_name == "{query_text}"']

@@ -1,8 +1,9 @@
 """Direct MCP Vocab search tool - calls omcp_vocab MCP server directly."""
+
 import json
 import subprocess
-from typing import List, Optional, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, List, Optional
 
 from ..models import ConceptMatch
 
@@ -15,10 +16,7 @@ class MCPVocabSearchTool:
     bypassing LLM agent reasoning for fast, deterministic results.
     """
 
-    def __init__(
-        self,
-        omcp_vocab_path: str = "/Users/k24118093/Documents/omcp_vocab"
-    ):
+    def __init__(self, omcp_vocab_path: str = "/Users/k24118093/Documents/omcp_vocab"):
         """
         Initialize MCP Vocab search tool.
 
@@ -32,17 +30,9 @@ class MCPVocabSearchTool:
     def _start_server(self):
         """Start the omcp_vocab MCP server subprocess."""
         if self._process is None:
-            cmd = [
-                "uv", "--directory", self.omcp_vocab_path,
-                "run", "python", "-m", "omcp_vocab.main"
-            ]
+            cmd = ["uv", "--directory", self.omcp_vocab_path, "run", "python", "-m", "omcp_vocab.main"]
             self._process = subprocess.Popen(
-                cmd,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                bufsize=1
+                cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1
             )
 
     def _stop_server(self):
@@ -71,10 +61,7 @@ class MCPVocabSearchTool:
             "jsonrpc": "2.0",
             "id": self._request_id,
             "method": "tools/call",
-            "params": {
-                "name": tool_name,
-                "arguments": arguments
-            }
+            "params": {"name": tool_name, "arguments": arguments},
         }
 
         # Send request
@@ -98,7 +85,7 @@ class MCPVocabSearchTool:
         top_k: int = 20,
         min_similarity: float = 0.5,
         matched_entity: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> List[ConceptMatch]:
         """
         Search for concepts using omcp_vocab MCP server.
@@ -127,13 +114,7 @@ class MCPVocabSearchTool:
                 tool_name = "lookup_condition"
 
             # Call MCP tool
-            result = self._call_mcp_tool(
-                tool_name=tool_name,
-                arguments={
-                    "query": query_text,
-                    "page_size": top_k
-                }
-            )
+            result = self._call_mcp_tool(tool_name=tool_name, arguments={"query": query_text, "page_size": top_k})
 
             # Parse response - omcp_vocab returns JSON in text content
             content = result.get("content", [])
@@ -148,7 +129,7 @@ class MCPVocabSearchTool:
             if json_start == -1:
                 return []
 
-            json_str = text[json_start + len("Full JSON:\n"):]
+            json_str = text[json_start + len("Full JSON:\n") :]
             concepts = json.loads(json_str)
 
             # Convert to ConceptMatch objects
@@ -158,13 +139,17 @@ class MCPVocabSearchTool:
                 similarity = max(0.1, 1.0 - (idx * 0.05))
 
                 # Convert timestamps to ISO date strings
-                valid_start = datetime.fromtimestamp(
-                    concept.get("VALID_START_DATE", 0) / 1000
-                ).strftime("%Y-%m-%d") if concept.get("VALID_START_DATE") else "1970-01-01"
+                valid_start = (
+                    datetime.fromtimestamp(concept.get("VALID_START_DATE", 0) / 1000).strftime("%Y-%m-%d")
+                    if concept.get("VALID_START_DATE")
+                    else "1970-01-01"
+                )
 
-                valid_end = datetime.fromtimestamp(
-                    concept.get("VALID_END_DATE", 0) / 1000
-                ).strftime("%Y-%m-%d") if concept.get("VALID_END_DATE") else "2099-12-31"
+                valid_end = (
+                    datetime.fromtimestamp(concept.get("VALID_END_DATE", 0) / 1000).strftime("%Y-%m-%d")
+                    if concept.get("VALID_END_DATE")
+                    else "2099-12-31"
+                )
 
                 match = ConceptMatch(
                     concept_id=int(concept["CONCEPT_ID"]),
@@ -178,7 +163,7 @@ class MCPVocabSearchTool:
                     valid_end_date=valid_end,
                     invalid_reason=concept.get("INVALID_REASON"),
                     similarity_score=similarity,
-                    matched_entity=matched_entity or query_text
+                    matched_entity=matched_entity or query_text,
                 )
                 matches.append(match)
 

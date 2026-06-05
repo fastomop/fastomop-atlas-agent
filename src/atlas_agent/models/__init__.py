@@ -1,7 +1,8 @@
 """Data models for ATLAS agent."""
+
+from .atlas_json import AtlasConcept, AtlasConceptSet, AtlasConceptSetItem
+from .concept_set import ConceptMatch, ConceptSet, ConceptSetItem, RelatedConcept
 from .entities import ClinicalEntity, ParsedClinicalDescription
-from .concept_set import ConceptMatch, ConceptSetItem, ConceptSet, RelatedConcept
-from .atlas_json import AtlasConcept, AtlasConceptSetItem, AtlasConceptSet
 
 __all__ = [
     "ClinicalEntity",

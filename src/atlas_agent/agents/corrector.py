@@ -1,10 +1,13 @@
 """Corrector Agent - Attempts to fix a failed concept set based on validation notes."""
+
+import json
+
 from agno.agent import Agent
 
 from ..config import get_agent_config
 from ..model_factory import create_model
-from ..models import ConceptSet, ParsedClinicalDescription, ConceptSetItem
-import json
+from ..models import ConceptSet, ConceptSetItem, ParsedClinicalDescription
+
 
 class CorrectorAgent:
     """
@@ -18,7 +21,10 @@ class CorrectorAgent:
         self.agent = Agent(
             name=agent_config.get("name", "Concept Set Corrector"),
             model=create_model(agent_config),
-            description=agent_config.get("description", "Clinical informatics expert who corrects OMOP concept sets based on validation feedback."),
+            description=agent_config.get(
+                "description",
+                "Clinical informatics expert who corrects OMOP concept sets based on validation feedback.",
+            ),
             instructions=[
                 "You are a clinical informatics expert tasked with correcting an OMOP concept set that has failed validation.",
                 "You will be given the original clinical description, the list of concepts, and the validation notes.",
@@ -44,7 +50,6 @@ class CorrectorAgent:
         print("   correctional logic...")
 
         # Convert items to proper JSON array
-        import json
         items_list = [item.model_dump() for item in concept_set.items]
         items_json = json.dumps(items_list, indent=2)
         validation_notes_str = "\n".join(concept_set.validation_notes)
@@ -78,7 +83,7 @@ Each item must have this exact structure:
 
             # Re-create ConceptSetItems from the corrected dictionary
             corrected_items = [ConceptSetItem(**item_dict) for item_dict in corrected_items_dict]
-            
+
             # Create a new concept set with the corrected items
             new_concept_set = ConceptSet(
                 name=concept_set.name + " (Corrected)",

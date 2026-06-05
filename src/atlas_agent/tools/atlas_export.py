@@ -1,5 +1,6 @@
 """ATLAS JSON export utilities."""
-from ..models import ConceptSet, AtlasConceptSet, AtlasConceptSetItem, AtlasConcept
+
+from ..models import AtlasConcept, AtlasConceptSet, AtlasConceptSetItem, ConceptSet
 
 
 def export_to_atlas_json(concept_set: ConceptSet) -> dict:
@@ -43,12 +44,8 @@ def export_to_atlas_json(concept_set: ConceptSet) -> dict:
             VALID_START_DATE=item.concept.valid_start_date,
             VALID_END_DATE=item.concept.valid_end_date,
             INVALID_REASON=item.concept.invalid_reason or "V",
-            INVALID_REASON_CAPTION=invalid_reason_caption_map.get(
-                item.concept.invalid_reason, "Valid"
-            ),
-            STANDARD_CONCEPT_CAPTION=standard_concept_caption_map.get(
-                item.concept.standard_concept, "Non-Standard"
-            ),
+            INVALID_REASON_CAPTION=invalid_reason_caption_map.get(item.concept.invalid_reason, "Valid"),
+            STANDARD_CONCEPT_CAPTION=standard_concept_caption_map.get(item.concept.standard_concept, "Non-Standard"),
         )
 
         # Create ATLAS item

@@ -1,10 +1,12 @@
 """Relationship Reasoner Agent - Uses OMOP relationships for clinical reasoning."""
+
 from typing import List
+
 from agno.agent import Agent
 
 from ..config import get_agent_config
 from ..model_factory import create_model
-from ..models import ClinicalEntity, ConceptMatch, RelatedConcept
+from ..models import ClinicalEntity, ConceptMatch
 from ..tools import MilvusSearchTool
 
 
@@ -129,10 +131,10 @@ class RelationshipReasonerAgent:
 
         # Check for laterality constraints (right/left/bilateral)
         laterality_terms = {
-            'right': [],
-            'left': [],
-            'bilateral': [],
-            'unilateral': [],
+            "right": [],
+            "left": [],
+            "bilateral": [],
+            "unilateral": [],
         }
 
         for concept in candidate_concepts[:10]:
@@ -142,14 +144,14 @@ class RelationshipReasonerAgent:
                     laterality_terms[term].append(concept)
 
         # Warning: If we have right OR left but not bilateral option
-        if (laterality_terms['right'] or laterality_terms['left']) and not laterality_terms['bilateral']:
-            if laterality_terms['right'] and not laterality_terms['left']:
+        if (laterality_terms["right"] or laterality_terms["left"]) and not laterality_terms["bilateral"]:
+            if laterality_terms["right"] and not laterality_terms["left"]:
                 warnings.append(
                     f"⚠️ LATERALITY: Only RIGHT-sided concepts found. "
                     f"Entity '{entity.text}' may need bilateral/non-lateralized concept. "
                     f"Right-sided concepts: {', '.join([f'[{c.concept_id}]' for c in laterality_terms['right'][:3]])}"
                 )
-            elif laterality_terms['left'] and not laterality_terms['right']:
+            elif laterality_terms["left"] and not laterality_terms["right"]:
                 warnings.append(
                     f"⚠️ LATERALITY: Only LEFT-sided concepts found. "
                     f"Entity '{entity.text}' may need bilateral/non-lateralized concept. "
@@ -168,10 +170,14 @@ class RelationshipReasonerAgent:
 
         if parent_child_pairs:
             warnings.append(
-                f"ℹ️ HIERARCHY: Parent-child pairs detected in candidates. "
-                f"Consider if broader or more specific concept is appropriate: "
-                + ", ".join([f"[{p.concept_id}] {p.concept_name} → [{c.concept_id}] {c.concept_name}"
-                           for p, c in parent_child_pairs[:2]])
+                "ℹ️ HIERARCHY: Parent-child pairs detected in candidates. "
+                "Consider if broader or more specific concept is appropriate: "
+                + ", ".join(
+                    [
+                        f"[{p.concept_id}] {p.concept_name} → [{c.concept_id}] {c.concept_name}"
+                        for p, c in parent_child_pairs[:2]
+                    ]
+                )
             )
 
         return "\n".join(warnings) if warnings else ""
@@ -201,23 +207,37 @@ class RelationshipReasonerAgent:
             # Rule 1: Domain mismatch for non-exclusion inclusions
             if not entity.is_exclusion:
                 if entity.domain == "Condition" and concept.domain_id not in {"Condition", "Observation"}:
-                    rejected_concepts.append((concept, f"Domain mismatch: entity requires {entity.domain}, concept is {concept.domain_id}"))
+                    rejected_concepts.append(
+                        (concept, f"Domain mismatch: entity requires {entity.domain}, concept is {concept.domain_id}")
+                    )
                     continue
 
                 # Rule 2: Forbidden concept classes for diagnosis sets
                 forbidden_classes = {"Procedure", "Substance", "Answer", "Context-dependent"}
-                if entity.entity_type in {"condition", "symptom", "observation"} and concept.concept_class_id in forbidden_classes:
-                    rejected_concepts.append((concept, f"Forbidden concept class '{concept.concept_class_id}' for {entity.entity_type}"))
+                if (
+                    entity.entity_type in {"condition", "symptom", "observation"}
+                    and concept.concept_class_id in forbidden_classes
+                ):
+                    rejected_concepts.append(
+                        (concept, f"Forbidden concept class '{concept.concept_class_id}' for {entity.entity_type}")
+                    )
                     continue
 
                 # Rule 3: Measurement domain concepts should not be in diagnosis sets (unless entity is measurement)
                 if entity.entity_type in {"condition", "symptom"} and concept.domain_id == "Measurement":
-                    rejected_concepts.append((concept, f"Measurement domain concept for {entity.entity_type} entity - should be in separate measurement phenotype"))
+                    rejected_concepts.append(
+                        (
+                            concept,
+                            f"Measurement domain concept for {entity.entity_type} entity - should be in separate measurement phenotype",
+                        )
+                    )
                     continue
 
             # Rule 4: UK Biobank survey answers are never appropriate
             if "biobank" in concept.vocabulary_id.lower() and concept.concept_class_id == "Answer":
-                rejected_concepts.append((concept, "Survey answer value from UK Biobank - not appropriate for concept sets"))
+                rejected_concepts.append(
+                    (concept, "Survey answer value from UK Biobank - not appropriate for concept sets")
+                )
                 continue
 
             # Passed all mandatory filters
@@ -254,11 +274,13 @@ class RelationshipReasonerAgent:
             return candidate_concepts  # Already small, skip comparison
 
         # Format candidates for comparison
-        candidates_text = "\n".join([
-            f"{i+1}. [{c.concept_id}] {c.concept_name}\n"
-            f"   Domain: {c.domain_id}, Class: {c.concept_class_id}, Similarity: {c.similarity_score:.3f}"
-            for i, c in enumerate(candidate_concepts)
-        ])
+        candidates_text = "\n".join(
+            [
+                f"{i + 1}. [{c.concept_id}] {c.concept_name}\n"
+                f"   Domain: {c.domain_id}, Class: {c.concept_class_id}, Similarity: {c.similarity_score:.3f}"
+                for i, c in enumerate(candidate_concepts)
+            ]
+        )
 
         prompt = f"""
 Compare these {len(candidate_concepts)} concept candidates and select the 2-3 BEST matches for the entity.
@@ -319,17 +341,20 @@ YOUR SELECTION (just IDs, one per line):
 """
 
         response = self.agent.run(prompt)
-        response_text = response.content if hasattr(response, 'content') else str(response)
+        response_text = response.content if hasattr(response, "content") else str(response)
 
         # Parse selected IDs
         import re
-        selected_ids = [int(id) for id in re.findall(r'\b(\d{6,})\b', response_text)]
+
+        selected_ids = [int(id) for id in re.findall(r"\b(\d{6,})\b", response_text)]
 
         # Return matching concepts (fallback to top 3 if parsing fails)
         if selected_ids:
             selected = [c for c in candidate_concepts if c.concept_id in selected_ids[:3]]
             if selected:
-                print(f"   🎯 Pre-selected {len(selected)} candidates: {', '.join([f'[{c.concept_id}]' for c in selected])}")
+                print(
+                    f"   🎯 Pre-selected {len(selected)} candidates: {', '.join([f'[{c.concept_id}]' for c in selected])}"
+                )
                 return selected
 
         # Fallback: return top 3 by similarity
@@ -386,6 +411,12 @@ YOUR SELECTION (just IDs, one per line):
             concepts_text = self._format_concepts_with_relationships(current_candidates)
             entities_text = ", ".join([f"'{e.text}' ({e.entity_type})" for e in all_entities])
 
+            # Pre-compute the comparison-warnings block. Python 3.10/3.11 don't
+            # allow backslash escapes (e.g. "\n") inside f-string expressions.
+            comparison_warnings_block = (
+                f"⚠️ COMPARISON WARNINGS:\n{comparison_warnings}\n" if comparison_warnings else ""
+            )
+
             # LLM reasoning prompt
             prompt = f"""
 Analyze these concept candidates using OMOP relationship data to select the best match(es).
@@ -395,8 +426,8 @@ Entity Type: {entity.entity_type}
 Domain: {entity.domain}
 Requires Descendants: {entity.requires_descendants}
 Is Exclusion: {entity.is_exclusion}
-Temporal Constraint: {entity.temporal_constraint or 'None'}
-Relationship to Primary: {entity.relationship_to_primary or 'None'}
+Temporal Constraint: {entity.temporal_constraint or "None"}
+Relationship to Primary: {entity.relationship_to_primary or "None"}
 
 CONTEXT FROM CLINICAL DESCRIPTION:
 All entities: {entities_text}
@@ -404,7 +435,7 @@ All entities: {entities_text}
 CANDIDATE CONCEPTS WITH RELATIONSHIPS:
 {concepts_text}
 
-{"⚠️ COMPARISON WARNINGS:\n" + comparison_warnings + "\n" if comparison_warnings else ""}
+{comparison_warnings_block}
 RELATIONSHIP ANALYSIS:
 {relationship_summary}
 
@@ -542,19 +573,19 @@ Accepted IDs: 67890
 
             # Get LLM reasoning
             response = self.agent.run(prompt)
-            response_text = response.content if hasattr(response, 'content') else str(response)
+            response_text = response.content if hasattr(response, "content") else str(response)
 
             # Parse the decision
             decision = self._parse_reasoning_decision(response_text, current_candidates)
 
-            if decision['action'] == 'ACCEPT':
-                return decision['selected_concepts']
-            elif decision['action'] == 'REFINE' and iteration < max_refinement_iterations - 1:
+            if decision["action"] == "ACCEPT":
+                return decision["selected_concepts"]
+            elif decision["action"] == "REFINE" and iteration < max_refinement_iterations - 1:
                 # Perform refinement search
                 print(f"  🔄 Refining search: {decision['refinement_reason']}")
                 refined_candidates = self._perform_refinement_search(
                     entity=entity,
-                    refinement_suggestion=decision['refinement_suggestion'],
+                    refinement_suggestion=decision["refinement_suggestion"],
                     original_candidates=current_candidates,
                 )
                 if refined_candidates:
@@ -563,7 +594,7 @@ Accepted IDs: 67890
                     continue
                 else:
                     # Refinement failed, return best from original
-                    print(f"  ⚠️  Refinement search found no results, using original candidates")
+                    print("  ⚠️  Refinement search found no results, using original candidates")
                     return self._parse_llm_selections(response_text, current_candidates)
             else:
                 # REJECT or max iterations reached
@@ -581,8 +612,8 @@ Accepted IDs: 67890
                 continue
 
             # Check for hierarchical relationships
-            is_a_rels = [r for r in c.relationship_types if r == 'Is a']
-            subsumes_rels = [r for r in c.relationship_types if r == 'Subsumes']
+            is_a_rels = [r for r in c.relationship_types if r == "Is a"]
+            subsumes_rels = [r for r in c.relationship_types if r == "Subsumes"]
 
             if is_a_rels:
                 hierarchy_notes.append(
@@ -598,15 +629,11 @@ Accepted IDs: 67890
 
             # Check if concept seems too generic (has many children but few parents)
             if len(subsumes_rels) > 10 and len(is_a_rels) < 3:
-                hierarchy_notes.append(
-                    f"  ⚠️  [{c.concept_id}] may be too generic (many children, few parents)"
-                )
+                hierarchy_notes.append(f"  ⚠️  [{c.concept_id}] may be too generic (many children, few parents)")
 
             # Check if concept seems too specific (has many parents but no children)
             if len(is_a_rels) > 5 and len(subsumes_rels) == 0:
-                hierarchy_notes.append(
-                    f"  ℹ️  [{c.concept_id}] is highly specific (many parents, no children)"
-                )
+                hierarchy_notes.append(f"  ℹ️  [{c.concept_id}] is highly specific (many parents, no children)")
 
         if not hierarchy_notes:
             return "No significant hierarchical relationships found in candidates."
@@ -627,60 +654,60 @@ Accepted IDs: 67890
         import re
 
         # Look for OVERALL decision
-        overall_match = re.search(r'OVERALL:\s*(ACCEPT|REFINE|REJECT)', response_text, re.IGNORECASE)
+        overall_match = re.search(r"OVERALL:\s*(ACCEPT|REFINE|REJECT)", response_text, re.IGNORECASE)
 
         if not overall_match:
             # Default to parsing selections if no clear decision
             selected = self._parse_llm_selections(response_text, candidate_concepts)
             return {
-                'action': 'ACCEPT',
-                'selected_concepts': selected,
-                'refinement_suggestion': None,
-                'refinement_reason': None,
+                "action": "ACCEPT",
+                "selected_concepts": selected,
+                "refinement_suggestion": None,
+                "refinement_reason": None,
             }
 
         action = overall_match.group(1).upper()
 
-        if action == 'ACCEPT':
+        if action == "ACCEPT":
             # Parse accepted IDs
-            accepted_ids_match = re.search(r'Accepted IDs?:\s*([\d,\s]+)', response_text)
+            accepted_ids_match = re.search(r"Accepted IDs?:\s*([\d,\s]+)", response_text)
             if accepted_ids_match:
                 id_str = accepted_ids_match.group(1)
-                accepted_ids = [int(id.strip()) for id in re.findall(r'\d{6,}', id_str)]
+                accepted_ids = [int(id.strip()) for id in re.findall(r"\d{6,}", id_str)]
                 selected = [c for c in candidate_concepts if c.concept_id in accepted_ids]
             else:
                 # Fall back to parsing selections
                 selected = self._parse_llm_selections(response_text, candidate_concepts)
 
             return {
-                'action': 'ACCEPT',
-                'selected_concepts': selected if selected else [candidate_concepts[0]],
-                'refinement_suggestion': None,
-                'refinement_reason': None,
+                "action": "ACCEPT",
+                "selected_concepts": selected if selected else [candidate_concepts[0]],
+                "refinement_suggestion": None,
+                "refinement_reason": None,
             }
 
-        elif action == 'REFINE':
+        elif action == "REFINE":
             # Extract refinement suggestion
-            suggestion_match = re.search(r'Suggested action:\s*(.+?)(?:\n|$)', response_text)
+            suggestion_match = re.search(r"Suggested action:\s*(.+?)(?:\n|$)", response_text)
             suggestion = suggestion_match.group(1).strip() if suggestion_match else response_text
 
             # Extract reason
-            reason_match = re.search(r'REFINE\s*\n(.+?)(?:Suggested action|$)', response_text, re.DOTALL)
+            reason_match = re.search(r"REFINE\s*\n(.+?)(?:Suggested action|$)", response_text, re.DOTALL)
             reason = reason_match.group(1).strip() if reason_match else "Refinement needed"
 
             return {
-                'action': 'REFINE',
-                'selected_concepts': [],
-                'refinement_suggestion': suggestion,
-                'refinement_reason': reason,
+                "action": "REFINE",
+                "selected_concepts": [],
+                "refinement_suggestion": suggestion,
+                "refinement_reason": reason,
             }
 
         else:  # REJECT
             return {
-                'action': 'REJECT',
-                'selected_concepts': [],
-                'refinement_suggestion': None,
-                'refinement_reason': 'All candidates rejected',
+                "action": "REJECT",
+                "selected_concepts": [],
+                "refinement_suggestion": None,
+                "refinement_reason": "All candidates rejected",
             }
 
     def _perform_refinement_search(
@@ -700,14 +727,14 @@ Accepted IDs: 67890
         import re
 
         # Check if suggestion mentions specific concept IDs
-        concept_id_matches = re.findall(r'\b(\d{6,})\b', refinement_suggestion)
+        concept_id_matches = re.findall(r"\b(\d{6,})\b", refinement_suggestion)
 
         if concept_id_matches:
             # LLM wants to explore specific concepts or their children/parents
             concept_id = int(concept_id_matches[0])
 
             # Check if we should look for children or parents
-            if 'child' in refinement_suggestion.lower() or 'more specific' in refinement_suggestion.lower():
+            if "child" in refinement_suggestion.lower() or "more specific" in refinement_suggestion.lower():
                 # Search for more specific terms based on the concept name
                 parent_concept = next((c for c in original_candidates if c.concept_id == concept_id), None)
                 if parent_concept:
@@ -720,12 +747,12 @@ Accepted IDs: 67890
                         min_similarity=0.5,
                     )
 
-            elif 'parent' in refinement_suggestion.lower() or 'broader' in refinement_suggestion.lower():
+            elif "parent" in refinement_suggestion.lower() or "broader" in refinement_suggestion.lower():
                 # Search for broader terms
                 child_concept = next((c for c in original_candidates if c.concept_id == concept_id), None)
                 if child_concept:
                     # Extract the core term without qualifiers
-                    simplified_query = re.sub(r'\s+(due to|with|of|in)\s+.+', '', entity.text)
+                    simplified_query = re.sub(r"\s+(due to|with|of|in)\s+.+", "", entity.text)
                     return self.search_tool.search_concepts(
                         query_text=simplified_query,
                         domain_filter=entity.domain,
@@ -764,19 +791,17 @@ Accepted IDs: 67890
         summary = f"Found {len(all_rels)} relationship types across {len(concepts)} concepts:\n"
 
         # Categorize relationships
-        treatment_rels = [r for r in all_rels if any(
-            keyword in r.lower() for keyword in ['treat', 'indication', 'prevent']
-        )]
-        clinical_rels = [r for r in all_rels if any(
-            keyword in r.lower() for keyword in ['manifestation', 'complication', 'finding', 'asso']
-        )]
-        causal_rels = [r for r in all_rels if any(
-            keyword in r.lower() for keyword in ['causative', 'due to']
-        )]
-        anatomical_rels = [r for r in all_rels if any(
-            keyword in r.lower() for keyword in ['site', 'morph']
-        )]
-        hierarchy_rels = [r for r in all_rels if r in ['Is a', 'Subsumes']]
+        treatment_rels = [
+            r for r in all_rels if any(keyword in r.lower() for keyword in ["treat", "indication", "prevent"])
+        ]
+        clinical_rels = [
+            r
+            for r in all_rels
+            if any(keyword in r.lower() for keyword in ["manifestation", "complication", "finding", "asso"])
+        ]
+        causal_rels = [r for r in all_rels if any(keyword in r.lower() for keyword in ["causative", "due to"])]
+        anatomical_rels = [r for r in all_rels if any(keyword in r.lower() for keyword in ["site", "morph"])]
+        hierarchy_rels = [r for r in all_rels if r in ["Is a", "Subsumes"]]
 
         if treatment_rels:
             summary += f"  Treatment/Prevention: {', '.join(treatment_rels[:5])}\n"
@@ -802,8 +827,8 @@ Accepted IDs: 67890
 
         # Extract entity types from description
         condition_entities = [e for e in all_entities if e.entity_type == "condition"]
-        drug_entities = [e for e in all_entities if e.entity_type == "drug"]
-        symptom_entities = [e for e in all_entities if e.entity_type == "symptom"]
+        [e for e in all_entities if e.entity_type == "drug"]
+        [e for e in all_entities if e.entity_type == "symptom"]
 
         # Check drug-condition coherence
         if entity.entity_type == "drug" and condition_entities:
@@ -815,10 +840,17 @@ Accepted IDs: 67890
 
             # Check if any candidate has treatment relationships
             has_treatment_rels = any(
-                any(rel in c.relationship_types for rel in [
-                    'May treat', 'May be treated by', 'Has FDA indication', 'FDA indication of',
-                    'Has EMA indication', 'EMA indication of'
-                ])
+                any(
+                    rel in c.relationship_types
+                    for rel in [
+                        "May treat",
+                        "May be treated by",
+                        "Has FDA indication",
+                        "FDA indication of",
+                        "Has EMA indication",
+                        "EMA indication of",
+                    ]
+                )
                 for c in concepts
             )
             if has_treatment_rels:
@@ -833,9 +865,10 @@ Accepted IDs: 67890
 
             # Check for manifestation relationships
             has_manifestation = any(
-                any(rel in c.relationship_types for rel in [
-                    'Manifestation of', 'Has manifestation', 'Asso finding of', 'Finding asso with'
-                ])
+                any(
+                    rel in c.relationship_types
+                    for rel in ["Manifestation of", "Has manifestation", "Asso finding of", "Finding asso with"]
+                )
                 for c in concepts
             )
             if has_manifestation:
@@ -843,9 +876,7 @@ Accepted IDs: 67890
 
         # Check procedure-condition coherence
         if entity.entity_type == "procedure" and condition_entities:
-            coherence_notes.append(
-                f"Procedure may have diagnostic/therapeutic relationship to conditions"
-            )
+            coherence_notes.append("Procedure may have diagnostic/therapeutic relationship to conditions")
 
         if not coherence_notes:
             return "No specific coherence checks needed for this entity type."
@@ -856,10 +887,10 @@ Accepted IDs: 67890
         """Format concepts showing their relationships."""
         lines = []
         for i, c in enumerate(concepts, 1):
+            lines.append(f"{i}. [{c.concept_id}] {c.concept_name}")
             lines.append(
-                f"{i}. [{c.concept_id}] {c.concept_name}"
+                f"   Domain: {c.domain_id}, Standard: {c.standard_concept}, Similarity: {c.similarity_score:.3f}"
             )
-            lines.append(f"   Domain: {c.domain_id}, Standard: {c.standard_concept}, Similarity: {c.similarity_score:.3f}")
 
             if c.parent_concept_id:
                 lines.append(f"   Parent Concept: {c.parent_concept_id}")
@@ -896,40 +927,36 @@ Accepted IDs: 67890
         blocks = response_text.split("Concept ID:")
 
         for block in blocks[1:]:  # Skip first empty block
-            lines = block.strip().split('\n')
+            lines = block.strip().split("\n")
 
             # Extract concept ID
-            concept_id_match = re.search(r'(\d{6,})', lines[0])
+            concept_id_match = re.search(r"(\d{6,})", lines[0])
             if not concept_id_match:
                 continue
 
             concept_id = int(concept_id_match.group(1))
 
             # Check if selected
-            selected = any('selected: yes' in line.lower() for line in lines)
+            selected = any("selected: yes" in line.lower() for line in lines)
             if not selected:
                 continue
 
             # Extract quality score
-            quality_score = None
             for line in lines:
-                score_match = re.search(r'quality score:\s*([0-9.]+)', line.lower())
+                score_match = re.search(r"quality score:\s*([0-9.]+)", line.lower())
                 if score_match:
-                    quality_score = float(score_match.group(1))
+                    float(score_match.group(1))
                     break
 
             # Extract rationale
             rationale = None
             for line in lines:
-                if 'rationale:' in line.lower():
-                    rationale = line.split(':', 1)[1].strip()
+                if "rationale:" in line.lower():
+                    rationale = line.split(":", 1)[1].strip()
                     break
 
             # Find matching concept
-            matching_concept = next(
-                (c for c in candidate_concepts if c.concept_id == concept_id),
-                None
-            )
+            matching_concept = next((c for c in candidate_concepts if c.concept_id == concept_id), None)
 
             if matching_concept:
                 # Update concept with enriched rationale

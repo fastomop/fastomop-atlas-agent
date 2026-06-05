@@ -1,5 +1,7 @@
 """Validator Agent - Validates concept sets for clinical accuracy and ATLAS compliance."""
+
 from typing import List
+
 from agno.agent import Agent
 
 from ..config import get_agent_config
@@ -25,7 +27,10 @@ class ValidatorAgent:
         self.agent = Agent(
             name=agent_config.get("name", "Concept Set Validator"),
             model=create_model(agent_config),
-            description=agent_config.get("description", "Clinical informatics expert who validates OMOP concept sets for accuracy and completeness"),
+            description=agent_config.get(
+                "description",
+                "Clinical informatics expert who validates OMOP concept sets for accuracy and completeness",
+            ),
             instructions=[
                 "You are a clinical informatics expert validating OMOP concept sets for research use.",
                 "Your task is to review concept sets and identify issues before they are used in cohort definitions.",
@@ -122,7 +127,7 @@ Focus only on the concept set quality. Provide validation_status, issues, warnin
 
         # Get validation from LLM
         response = self.agent.run(prompt)
-        validation_text = response.content if hasattr(response, 'content') else str(response)
+        validation_text = response.content if hasattr(response, "content") else str(response)
 
         # Parse validation results
         validation_notes = self._parse_validation_results(validation_text)
@@ -130,9 +135,7 @@ Focus only on the concept set quality. Provide validation_status, issues, warnin
 
         # Perform relationship coherence checks
         if parsed_description:
-            relationship_issues = self._validate_relationship_coherence(
-                concept_set, parsed_description
-            )
+            relationship_issues = self._validate_relationship_coherence(concept_set, parsed_description)
             if relationship_issues:
                 validation_notes.extend(relationship_issues)
 
@@ -172,15 +175,15 @@ Focus only on the concept set quality. Provide validation_status, issues, warnin
         notes = []
 
         # Simple parsing - look for structured sections
-        for line in validation_text.split('\n'):
+        for line in validation_text.split("\n"):
             line = line.strip()
             if not line:
                 continue
 
             # Capture issues, warnings, suggestions
-            if any(keyword in line.lower() for keyword in ['issue:', 'warning:', 'suggestion:', '- ']):
+            if any(keyword in line.lower() for keyword in ["issue:", "warning:", "suggestion:", "- "]):
                 # Clean up common prefixes
-                line = line.lstrip('- ').lstrip('* ')
+                line = line.lstrip("- ").lstrip("* ")
                 if line:
                     notes.append(line)
 
@@ -193,18 +196,14 @@ Focus only on the concept set quality. Provide validation_status, issues, warnin
     def _extract_coverage_summary(self, validation_text: str) -> str:
         """Extract coverage assessment from validation text."""
         # Look for coverage-related section
-        for line in validation_text.split('\n'):
-            if 'coverage' in line.lower():
+        for line in validation_text.split("\n"):
+            if "coverage" in line.lower():
                 return line.strip()
 
         # Default summary
         return "Coverage assessment pending manual review"
 
-    def _validate_relationship_coherence(
-        self,
-        concept_set: ConceptSet,
-        parsed_description
-    ) -> List[str]:
+    def _validate_relationship_coherence(self, concept_set: ConceptSet, parsed_description) -> List[str]:
         """
         Validate concept set coherence using OMOP relationship data.
 
@@ -221,9 +220,9 @@ Focus only on the concept set quality. Provide validation_status, issues, warnin
 
         # Extract entities by type
         condition_entities = [e for e in parsed_description.entities if e.entity_type == "condition"]
-        drug_entities = [e for e in parsed_description.entities if e.entity_type == "drug"]
+        [e for e in parsed_description.entities if e.entity_type == "drug"]
         symptom_entities = [e for e in parsed_description.entities if e.entity_type == "symptom"]
-        procedure_entities = [e for e in parsed_description.entities if e.entity_type == "procedure"]
+        [e for e in parsed_description.entities if e.entity_type == "procedure"]
 
         # Extract concept set items by domain
         condition_items = [item for item in concept_set.items if item.concept.domain_id == "Condition"]
@@ -240,13 +239,20 @@ Focus only on the concept set quality. Provide validation_status, issues, warnin
 
                 relationships = drug_item.concept.relationship_types
                 has_treatment_rel = any(
-                    rel in relationships for rel in [
-                        'May treat', 'May be treated by',
-                        'Has FDA indication', 'FDA indication of',
-                        'Has EMA indication', 'EMA indication of',
-                        'Has PMDA indication', 'PMDA indication of',
-                        'Has NMPA indication', 'NMPA indication of',
-                        'Has HC indication', 'HC indication of',
+                    rel in relationships
+                    for rel in [
+                        "May treat",
+                        "May be treated by",
+                        "Has FDA indication",
+                        "FDA indication of",
+                        "Has EMA indication",
+                        "EMA indication of",
+                        "Has PMDA indication",
+                        "PMDA indication of",
+                        "Has NMPA indication",
+                        "NMPA indication of",
+                        "Has HC indication",
+                        "HC indication of",
                     ]
                 )
 
@@ -264,15 +270,20 @@ Focus only on the concept set quality. Provide validation_status, issues, warnin
                     continue
 
                 # Check if this is a symptom/finding
-                if any(keyword in obs_item.concept.concept_name.lower() for keyword in [
-                    'pain', 'edema', 'swelling', 'finding', 'symptom', 'dyspnea', 'fatigue'
-                ]):
+                if any(
+                    keyword in obs_item.concept.concept_name.lower()
+                    for keyword in ["pain", "edema", "swelling", "finding", "symptom", "dyspnea", "fatigue"]
+                ):
                     relationships = obs_item.concept.relationship_types
                     has_manifestation_rel = any(
-                        rel in relationships for rel in [
-                            'Manifestation of', 'Has manifestation',
-                            'Asso finding of', 'Finding asso with',
-                            'Has asso finding', 'Asso with finding',
+                        rel in relationships
+                        for rel in [
+                            "Manifestation of",
+                            "Has manifestation",
+                            "Asso finding of",
+                            "Finding asso with",
+                            "Has asso finding",
+                            "Asso with finding",
                         ]
                     )
 
@@ -291,17 +302,22 @@ Focus only on the concept set quality. Provide validation_status, issues, warnin
 
                 relationships = proc_item.concept.relationship_types
                 has_clinical_rel = any(
-                    rel in relationships for rel in [
-                        'Has asso proc', 'Asso proc of',
-                        'Has interprets', 'Interprets of',
-                        'Using finding method', 'Finding method of',
+                    rel in relationships
+                    for rel in [
+                        "Has asso proc",
+                        "Asso proc of",
+                        "Has interprets",
+                        "Interprets of",
+                        "Using finding method",
+                        "Finding method of",
                     ]
                 )
 
                 # Only flag if it's clearly a diagnostic/therapeutic procedure
-                if any(keyword in proc_item.concept.concept_name.lower() for keyword in [
-                    'ultrasound', 'imaging', 'test', 'biopsy', 'surgery', 'therapy'
-                ]):
+                if any(
+                    keyword in proc_item.concept.concept_name.lower()
+                    for keyword in ["ultrasound", "imaging", "test", "biopsy", "surgery", "therapy"]
+                ):
                     if not has_clinical_rel:
                         issues.append(
                             f"ℹ️ RELATIONSHIP: Procedure [{proc_item.concept.concept_id}] {proc_item.concept.concept_name} "
@@ -325,9 +341,7 @@ Focus only on the concept set quality. Provide validation_status, issues, warnin
             if item.is_excluded:
                 continue
 
-            has_hierarchy = any(
-                rel in item.concept.relationship_types for rel in ['Is a', 'Subsumes']
-            )
+            has_hierarchy = any(rel in item.concept.relationship_types for rel in ["Is a", "Subsumes"])
 
             # Conditions should typically include descendants if they have hierarchy
             if item.concept.domain_id == "Condition" and has_hierarchy and not item.include_descendants:

@@ -1,6 +1,8 @@
 """Direct WebAPI vocabulary search (no MCP, no Milvus)."""
-import httpx
+
 from typing import List, Optional
+
+import httpx
 
 from ..models import ConceptMatch
 
@@ -12,11 +14,7 @@ class WebAPISearchTool:
     Lightweight alternative to both Milvus and MCP - just direct HTTP calls.
     """
 
-    def __init__(
-        self,
-        webapi_url: str = "http://localhost:8080/WebAPI",
-        cdm_source: str = "MIMIC"
-    ):
+    def __init__(self, webapi_url: str = "http://localhost:8080/WebAPI", cdm_source: str = "MIMIC"):
         """
         Initialize WebAPI search tool.
 
@@ -34,7 +32,7 @@ class WebAPISearchTool:
         top_k: int = 20,
         min_similarity: float = 0.5,
         matched_entity: Optional[str] = None,
-        **kwargs
+        **kwargs,
     ) -> List[ConceptMatch]:
         """
         Search for concepts using WebAPI.
@@ -106,6 +104,7 @@ class WebAPISearchTool:
 
             # Sort by relevance (following omcp_vocab pattern)
             query_lower = query_text.lower()
+
             def sort_key(c):
                 name_lower = c.get("CONCEPT_NAME", "").lower()
                 # Exact match = 0, starts with = 1, contains = 2
@@ -132,8 +131,17 @@ class WebAPISearchTool:
 
                 # Convert timestamps to ISO date strings
                 from datetime import datetime
-                valid_start = datetime.fromtimestamp(concept.get("VALID_START_DATE", 0) / 1000).strftime("%Y-%m-%d") if concept.get("VALID_START_DATE") else "1970-01-01"
-                valid_end = datetime.fromtimestamp(concept.get("VALID_END_DATE", 0) / 1000).strftime("%Y-%m-%d") if concept.get("VALID_END_DATE") else "2099-12-31"
+
+                valid_start = (
+                    datetime.fromtimestamp(concept.get("VALID_START_DATE", 0) / 1000).strftime("%Y-%m-%d")
+                    if concept.get("VALID_START_DATE")
+                    else "1970-01-01"
+                )
+                valid_end = (
+                    datetime.fromtimestamp(concept.get("VALID_END_DATE", 0) / 1000).strftime("%Y-%m-%d")
+                    if concept.get("VALID_END_DATE")
+                    else "2099-12-31"
+                )
 
                 match = ConceptMatch(
                     concept_id=int(concept["CONCEPT_ID"]),
@@ -147,7 +155,7 @@ class WebAPISearchTool:
                     valid_end_date=valid_end,
                     invalid_reason=concept.get("INVALID_REASON"),
                     similarity_score=similarity,
-                    matched_entity=matched_entity or query_text
+                    matched_entity=matched_entity or query_text,
                 )
                 matches.append(match)
 
@@ -180,8 +188,17 @@ class WebAPISearchTool:
 
             # Convert to ConceptMatch
             from datetime import datetime
-            valid_start = datetime.fromtimestamp(concept.get("VALID_START_DATE", 0) / 1000).strftime("%Y-%m-%d") if concept.get("VALID_START_DATE") else "1970-01-01"
-            valid_end = datetime.fromtimestamp(concept.get("VALID_END_DATE", 0) / 1000).strftime("%Y-%m-%d") if concept.get("VALID_END_DATE") else "2099-12-31"
+
+            valid_start = (
+                datetime.fromtimestamp(concept.get("VALID_START_DATE", 0) / 1000).strftime("%Y-%m-%d")
+                if concept.get("VALID_START_DATE")
+                else "1970-01-01"
+            )
+            valid_end = (
+                datetime.fromtimestamp(concept.get("VALID_END_DATE", 0) / 1000).strftime("%Y-%m-%d")
+                if concept.get("VALID_END_DATE")
+                else "2099-12-31"
+            )
 
             return ConceptMatch(
                 concept_id=int(concept["CONCEPT_ID"]),
@@ -195,7 +212,7 @@ class WebAPISearchTool:
                 valid_end_date=valid_end,
                 invalid_reason=concept.get("INVALID_REASON"),
                 similarity_score=1.0,  # Direct ID lookup
-                matched_entity=f"concept_id:{concept_id}"
+                matched_entity=f"concept_id:{concept_id}",
             )
 
         except Exception as e:

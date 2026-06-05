@@ -1,6 +1,7 @@
 [project]
 name = "atlas-agent"
 version = "0.1.0"
+description = "Multi-agent system for automated ATLAS concept-set construction from natural-language clinical descriptions."
 requires-python = ">=3.10"
 dependencies = [
     "agno>=2.0.0",
@@ -19,8 +20,56 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
+    "ruff>=0.15",
+    "ty>=0.0.1a1",
+]
+docs = [
+    "zensical>=0.0.39",
+    "pymdown-extensions>=10.7",
 ]
 
 [build-system]
-requires = ["setuptools>=61.0"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build>=0.9,<0.10"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "atlas_agent"
+module-root = "src"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["build", "dist", ".venv", "output"]
+
+[tool.ruff.lint]
+# Conservative selectors so PR2 lands clean. Expand selectors in a
+# follow-up once the codebase is uniformly compliant.
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",  # line-too-long — many existing lines exceed; revisit later
+    "E741",  # ambiguous variable name — existing style
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/atlas_agent/__init__.py" = ["F401"]
+
+[tool.ruff.format]
+# Default ruff format settings (replaces black).
+
+[tool.ty]
+# ty is still alpha. Run it via `uv run ty check src` for advisory
+# feedback; not yet wired into prek hooks. CI treats it as non-blocking.
+
+[tool.ty.src]
+root = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+# By default, skip integration tests (those need a live Milvus, OMOP
+# concept embeddings, and LLM credentials). Run them locally with:
+# `uv run pytest -m integration`.
+addopts = "-m 'not integration'"
+markers = [
+    "integration: tests that require external services (Milvus, OMOP DB, LLM API keys). Skipped by default in CI.",
+]
