@@ -1,7 +1,7 @@
 """Test the refined relationship reasoning with hierarchy analysis."""
-from src.atlas_agent.agents.clinical_parser import ClinicalParserAgent
-from src.atlas_agent.agents.concept_finder import ConceptFinderAgent
-from src.atlas_agent.agents.relationship_reasoner import RelationshipReasonerAgent
+from atlas_agent.agents.clinical_parser import ClinicalParserAgent
+from atlas_agent.agents.concept_finder import ConceptFinderAgent
+from atlas_agent.agents.relationship_reasoner import RelationshipReasonerAgent
 
 # Initialize agents
 parser = ClinicalParserAgent()
