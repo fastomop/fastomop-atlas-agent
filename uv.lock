@@ -87,6 +87,7 @@ source = { editable = "." }
 dependencies = [
     { name = "agno" },
     { name = "anthropic" },
+    { name = "click" },
     { name = "ollama" },
     { name = "openai" },
     { name = "pydantic" },
@@ -96,6 +97,7 @@ dependencies = [
     { name = "sentence-transformers" },
     { name = "tomli" },
     { name = "torch" },
+    { name = "typer" },
 ]
 
 [package.optional-dependencies]
@@ -113,6 +115,7 @@ docs = [
 requires-dist = [
     { name = "agno", specifier = ">=2.0.0" },
     { name = "anthropic", specifier = ">=0.42.0" },
+    { name = "click", specifier = ">=8.1" },
     { name = "ollama" },
     { name = "openai", specifier = ">=1.0.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
@@ -126,6 +129,7 @@ requires-dist = [
     { name = "tomli", specifier = ">=2.0.0" },
     { name = "torch", specifier = "==2.7.0" },
     { name = "ty", marker = "extra == 'dev'", specifier = ">=0.0.1a1" },
+    { name = "typer", specifier = ">=0.12" },
     { name = "zensical", marker = "extra == 'docs'", specifier = ">=0.0.39" },
 ]
 provides-extras = ["dev", "docs"]
