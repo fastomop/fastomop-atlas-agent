@@ -21,6 +21,20 @@ OMOP Atlas Agent translates free-text clinical phenotype definitions into struct
 - Milvus vector database (standalone or Docker)
 - LLM provider (one of: Azure OpenAI, OpenAI, Anthropic, or Ollama)
 
+### Logging
+
+The agent uses Python's standard `logging` module. Set the verbosity via the
+`LOG_LEVEL` env var (`DEBUG` | `INFO` | `WARNING` | `ERROR` | `CRITICAL`,
+default `INFO`):
+
+```bash
+LOG_LEVEL=DEBUG uv run python -m atlas_agent.main "Patients with diabetes"
+```
+
+CLI usage banners and the final concept-set summary still go to stdout via
+`print()` — they are part of the program's primary output, not diagnostic
+logs that should be filtered by `LOG_LEVEL`.
+
 ## Installation
 
 ```bash

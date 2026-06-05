@@ -1,5 +1,6 @@
 """Relationship Reasoner Agent - Uses OMOP relationships for clinical reasoning."""
 
+import logging
 from typing import List
 
 from agno.agent import Agent
@@ -8,6 +9,8 @@ from ..config import get_agent_config
 from ..model_factory import create_model
 from ..models import ClinicalEntity, ConceptMatch
 from ..tools import MilvusSearchTool
+
+logger = logging.getLogger(__name__)
 
 
 class RelationshipReasonerAgent:
@@ -245,11 +248,11 @@ class RelationshipReasonerAgent:
 
         # Log rejections
         if rejected_concepts:
-            print(f"\n🚫 Mandatory filters: Rejected {len(rejected_concepts)} concept(s) for '{entity.text}':")
+            logger.info("Mandatory filters: rejected %d concept(s) for '%s'", len(rejected_concepts), entity.text)
             for concept, reason in rejected_concepts[:3]:
-                print(f"   - [{concept.concept_id}] {concept.concept_name}: {reason}")
+                logger.debug("  - [%s] %s: %s", concept.concept_id, concept.concept_name, reason)
             if len(rejected_concepts) > 3:
-                print(f"   ... and {len(rejected_concepts) - 3} more")
+                logger.debug("  ... and %d more", len(rejected_concepts) - 3)
 
         return filtered_concepts
 
@@ -352,8 +355,10 @@ YOUR SELECTION (just IDs, one per line):
         if selected_ids:
             selected = [c for c in candidate_concepts if c.concept_id in selected_ids[:3]]
             if selected:
-                print(
-                    f"   🎯 Pre-selected {len(selected)} candidates: {', '.join([f'[{c.concept_id}]' for c in selected])}"
+                logger.debug(
+                    "Pre-selected %d candidates: %s",
+                    len(selected),
+                    ", ".join([f"[{c.concept_id}]" for c in selected]),
                 )
                 return selected
 
@@ -386,7 +391,7 @@ YOUR SELECTION (just IDs, one per line):
         filtered_candidates = self._apply_mandatory_filters(entity, candidate_concepts)
 
         if not filtered_candidates:
-            print(f"⚠️  All candidates rejected by mandatory filters for '{entity.text}'")
+            logger.warning("All candidates rejected by mandatory filters for '%s'", entity.text)
             return []
 
         # NEW: Pre-select best candidates based on granularity/laterality
@@ -582,7 +587,7 @@ Accepted IDs: 67890
                 return decision["selected_concepts"]
             elif decision["action"] == "REFINE" and iteration < max_refinement_iterations - 1:
                 # Perform refinement search
-                print(f"  🔄 Refining search: {decision['refinement_reason']}")
+                logger.info("Refining search: %s", decision["refinement_reason"])
                 refined_candidates = self._perform_refinement_search(
                     entity=entity,
                     refinement_suggestion=decision["refinement_suggestion"],
@@ -594,7 +599,7 @@ Accepted IDs: 67890
                     continue
                 else:
                     # Refinement failed, return best from original
-                    print("  ⚠️  Refinement search found no results, using original candidates")
+                    logger.warning("Refinement search found no results, using original candidates")
                     return self._parse_llm_selections(response_text, current_candidates)
             else:
                 # REJECT or max iterations reached

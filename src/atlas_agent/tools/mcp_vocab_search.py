@@ -1,11 +1,14 @@
 """Direct MCP Vocab search tool - calls omcp_vocab MCP server directly."""
 
 import json
+import logging
 import subprocess
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from ..models import ConceptMatch
+
+logger = logging.getLogger(__name__)
 
 
 class MCPVocabSearchTool:
@@ -169,8 +172,8 @@ class MCPVocabSearchTool:
 
             return matches
 
-        except Exception as e:
-            print(f"⚠️  MCP vocab search failed: {e}")
+        except Exception:
+            logger.warning("MCP vocab search failed", exc_info=True)
             return []
 
     def search_by_code(self, code: str, vocabulary_id: str) -> Optional[ConceptMatch]:

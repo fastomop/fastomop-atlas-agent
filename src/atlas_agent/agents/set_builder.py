@@ -1,8 +1,11 @@
 """Set Builder Agent - Applies ATLAS concept set rules."""
 
+import logging
 from typing import List
 
 from ..models import ClinicalEntity, ConceptMatch, ConceptSet, ConceptSetItem
+
+logger = logging.getLogger(__name__)
 
 
 class SetBuilderAgent:
@@ -93,7 +96,7 @@ class SetBuilderAgent:
                     skip_reason = self._validate_diagnosis_concept(entity, match)
                     if skip_reason:
                         skipped_concepts.append((match, skip_reason))
-                        print(f"⚠️  Skipping [{match.concept_id}] {match.concept_name}: {skip_reason}")
+                        logger.info("Skipping [%s] %s: %s", match.concept_id, match.concept_name, skip_reason)
                         continue
                 # Apply ATLAS rules based on domain
                 domain_rules = self.ATLAS_RULES.get(

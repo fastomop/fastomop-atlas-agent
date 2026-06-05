@@ -1,10 +1,14 @@
 """Clinical Parser Agent - Extracts structured entities from clinical descriptions."""
 
+import logging
+
 from agno.agent import Agent
 
 from ..config import get_agent_config
 from ..model_factory import create_model
 from ..models import ParsedClinicalDescription
+
+logger = logging.getLogger(__name__)
 
 
 class ClinicalParserAgent:
@@ -169,10 +173,8 @@ CONTEXT:
                 indent=2,
             )
 
-        print("\n📋 Restructured vignette:")
-        print("=" * 80)
-        print(restructured[:1000] if len(str(restructured)) > 1000 else restructured)
-        print("=" * 80 + "\n")
+        preview = restructured[:1000] if len(str(restructured)) > 1000 else restructured
+        logger.debug("Restructured vignette: %s", preview)
 
         return restructured
 
@@ -216,11 +218,11 @@ CONTEXT:
             validated_entities.append(entity)
 
         if skipped_entities:
-            print(f"\n⚠️  Validation: Skipped {len(skipped_entities)} generic entities:")
+            logger.warning("Skipped %d generic entities during validation", len(skipped_entities))
             for text, reason in skipped_entities[:5]:
-                print(f"   - '{text}': {reason}")
+                logger.debug("  - '%s': %s", text, reason)
             if len(skipped_entities) > 5:
-                print(f"   ... and {len(skipped_entities) - 5} more")
+                logger.debug("  ... and %d more", len(skipped_entities) - 5)
 
         return ParsedClinicalDescription(
             original_text=parsed.original_text,
@@ -261,13 +263,13 @@ Skip:
 - Synonym duplicates (extract once using full medical term)
 - Hierarchy duplicates (extract parent only with requires_descendants=true)
 """
-        print("   ⏳ Calling LLM for entity extraction (this may take 1-2 minutes)...")
+        logger.info("Calling LLM for entity extraction (this may take 1-2 minutes)")
         import time
 
         start = time.time()
         response = self.agent.run(prompt)
         elapsed = time.time() - start
-        print(f"   ✓ LLM responded in {elapsed:.1f}s")
+        logger.info("LLM responded in %.1fs", elapsed)
 
         # Handle both ParsedClinicalDescription objects and string responses
         import json
@@ -299,8 +301,8 @@ Skip:
                         parsed_json = json.loads(json_match.group(0))
                     else:
                         # If all parsing fails, create empty result with required fields
-                        print("⚠️  Failed to parse LLM response, using empty entity list")
-                        print(f"Response preview: {content[:500]}")
+                        logger.error("Failed to parse LLM response, using empty entity list")
+                        logger.debug("Response preview: %s", content[:500])
                         parsed_json = {
                             "original_text": structured_description,
                             "entities": [],

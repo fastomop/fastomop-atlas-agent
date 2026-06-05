@@ -1,12 +1,15 @@
 """Corrector Agent - Attempts to fix a failed concept set based on validation notes."""
 
 import json
+import logging
 
 from agno.agent import Agent
 
 from ..config import get_agent_config
 from ..model_factory import create_model
 from ..models import ConceptSet, ConceptSetItem, ParsedClinicalDescription
+
+logger = logging.getLogger(__name__)
 
 
 class CorrectorAgent:
@@ -47,7 +50,7 @@ class CorrectorAgent:
         Returns:
             A new, corrected ConceptSet.
         """
-        print("   correctional logic...")
+        logger.info("Running corrector pass")
 
         # Convert items to proper JSON array
         items_list = [item.model_dump() for item in concept_set.items]
@@ -90,11 +93,11 @@ Each item must have this exact structure:
                 description=concept_set.description,
                 items=corrected_items,
             )
-            print(f"  ✓ Corrector Agent proposed {len(corrected_items)} corrected items.")
+            logger.info("Corrector proposed %d corrected items", len(corrected_items))
             return new_concept_set
 
-        except (json.JSONDecodeError, TypeError, Exception) as e:
-            print(f"  ⚠️ Corrector Agent failed to produce valid JSON: {e}")
-            print(f"  Response preview: {str(response.content)[:500]}")
+        except (json.JSONDecodeError, TypeError) as e:
+            logger.warning("Corrector failed to produce valid JSON: %s", e)
+            logger.debug("Response preview: %s", str(response.content)[:500])
             # Return the original concept set if correction fails
             return concept_set
